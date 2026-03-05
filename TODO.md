@@ -15,9 +15,9 @@ This document lists the shortcomings and features that are not yet implemented o
 - [x] Fully implement `ToolTip` property content serialization (currently returns an empty struct).
 
 ### Menus
-- [ ] Support icon data transmission over DBusMenu to render icons correctly in system trays (e.g. `icon-name` or `icon-data`).
-- [ ] Better tracking of menu item changes using the correct DBusMenu signals to allow real-time updates of properties.
-- [ ] Add support for dynamically loading menu item layouts asynchronously to improve startup time.
+- [x] Support icon data transmission over DBusMenu to render icons correctly in system trays (e.g. `icon-name` or `icon-data`).
+- [x] Better tracking of menu item changes using the correct DBusMenu signals to allow real-time updates of properties.
+- [x] Add support for dynamically loading menu item layouts asynchronously to improve startup time.
 
 ## Desktop Environments (KDE, GTK, Ayatana, etc.)
 - [ ] KDE (`org.kde.StatusNotifierWatcher`): Expand KDE-specific dbusmenu features if needed.

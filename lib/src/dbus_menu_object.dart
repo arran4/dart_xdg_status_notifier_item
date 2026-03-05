@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:dbus/dbus.dart';
 
 /// An item in the menu.
@@ -7,6 +8,8 @@ class DBusMenuItem {
   final bool? enabled;
   final bool? visible;
   final String? label;
+  final String? iconName;
+  final Uint8List? iconData;
   final int? toggleState;
   final String? toggleType;
   final List<DBusMenuItem> children;
@@ -29,6 +32,8 @@ class DBusMenuItem {
       this.enabled,
       this.visible,
       this.label,
+      this.iconName,
+      this.iconData,
       this.toggleState,
       this.toggleType,
       this.children = const [],
@@ -98,6 +103,12 @@ class DBusMenuObject extends DBusObject {
     await emitSignal('com.canonical.dbusmenu', 'ItemsPropertiesUpdated', [
       DBusArray(DBusSignature('(ia{sv})'), updatedProperties),
       DBusArray(DBusSignature('(ias)'), removedProperties)
+    ]);
+
+    // Emit LayoutUpdated since the underlying tree structure might have fundamentally changed.
+    await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
+      DBusUint32(1), // revision
+      DBusInt32(0) // parent id (root)
     ]);
   }
 
@@ -236,6 +247,13 @@ class DBusMenuObject extends DBusObject {
           return DBusMethodErrorResponse('com.canonical.dbusmenu.UnknownId');
         }
         var needsUpdate = await item.onAboutToShow?.call() ?? false;
+        if (needsUpdate) {
+          // We signal the layout update to allow the host to re-read the layout.
+          await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
+            DBusUint32(1), // revision
+            DBusInt32(id) // parent id
+          ]);
+        }
         return DBusMethodSuccessResponse([DBusBoolean(needsUpdate)]);
       case 'AboutToShowGroup':
         if (methodCall.signature != DBusSignature('ai')) {
@@ -250,7 +268,13 @@ class DBusMenuObject extends DBusObject {
             idErrors.add(id);
           } else {
             var needsUpdate = await item.onAboutToShow?.call() ?? false;
-            if (needsUpdate) updatesNeeded.add(id);
+            if (needsUpdate) {
+              updatesNeeded.add(id);
+              await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
+                DBusUint32(1), // revision
+                DBusInt32(id) // parent id
+              ]);
+            }
           }
         }
         return DBusMethodSuccessResponse(
@@ -348,6 +372,12 @@ class DBusMenuObject extends DBusObject {
     if (item.label != null) {
       properties['label'] = DBusString(item.label!);
     }
+    if (item.iconName != null) {
+      properties['icon-name'] = DBusString(item.iconName!);
+    }
+    if (item.iconData != null) {
+      properties['icon-data'] = DBusArray.byte(item.iconData!);
+    }
     if (item.toggleType != null) {
       properties['toggle-type'] = DBusString(item.toggleType!);
     }
@@ -411,6 +441,10 @@ class DBusMenuObject extends DBusObject {
         await item.onClosed?.call();
         break;
       case 'clicked':
+        await emitSignal('com.canonical.dbusmenu', 'ItemActivationRequested', [
+          DBusInt32(_idsByItem[item] ?? -1),
+          DBusUint32(timestamp),
+        ]);
         await item.onClicked?.call();
         break;
     }
