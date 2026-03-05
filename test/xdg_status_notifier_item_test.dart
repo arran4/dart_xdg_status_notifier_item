@@ -91,4 +91,102 @@ void main() {
     });
     await client.connect();
   });
+
+  group('StatusNotifierItemClient actions', () {
+    test('ContextMenu correctly parses coordinates', () async {
+      int? resultX;
+      int? resultY;
+      var client = StatusNotifierItemClient(
+          id: 'test',
+          menu: DBusMenuItem(),
+          onContextMenu: (x, y) async {
+            resultX = x;
+            resultY = y;
+          });
+
+      var object = client.notifierItemObjectForTest;
+      var methodCall = DBusMethodCall(
+          sender: 'org.freedesktop.DBus',
+          interface: 'org.freedesktop.StatusNotifierItem',
+          name: 'ContextMenu',
+          values: [DBusInt32(10), DBusInt32(20)]);
+
+      var response = await object.handleMethodCall(methodCall);
+      expect(response, isA<DBusMethodSuccessResponse>());
+      expect(resultX, 10);
+      expect(resultY, 20);
+    });
+
+    test('Activate correctly parses coordinates', () async {
+      int? resultX;
+      int? resultY;
+      var client = StatusNotifierItemClient(
+          id: 'test',
+          menu: DBusMenuItem(),
+          onActivate: (x, y) async {
+            resultX = x;
+            resultY = y;
+          });
+
+      var object = client.notifierItemObjectForTest;
+      var methodCall = DBusMethodCall(
+          sender: 'org.freedesktop.DBus',
+          interface: 'org.freedesktop.StatusNotifierItem',
+          name: 'Activate',
+          values: [DBusInt32(15), DBusInt32(25)]);
+
+      var response = await object.handleMethodCall(methodCall);
+      expect(response, isA<DBusMethodSuccessResponse>());
+      expect(resultX, 15);
+      expect(resultY, 25);
+    });
+
+    test('SecondaryActivate correctly parses coordinates', () async {
+      int? resultX;
+      int? resultY;
+      var client = StatusNotifierItemClient(
+          id: 'test',
+          menu: DBusMenuItem(),
+          onSecondaryActivate: (x, y) async {
+            resultX = x;
+            resultY = y;
+          });
+
+      var object = client.notifierItemObjectForTest;
+      var methodCall = DBusMethodCall(
+          sender: 'org.freedesktop.DBus',
+          interface: 'org.freedesktop.StatusNotifierItem',
+          name: 'SecondaryActivate',
+          values: [DBusInt32(30), DBusInt32(40)]);
+
+      var response = await object.handleMethodCall(methodCall);
+      expect(response, isA<DBusMethodSuccessResponse>());
+      expect(resultX, 30);
+      expect(resultY, 40);
+    });
+
+    test('Scroll correctly parses delta and orientation', () async {
+      int? resultDelta;
+      String? resultOrientation;
+      var client = StatusNotifierItemClient(
+          id: 'test',
+          menu: DBusMenuItem(),
+          onScroll: (delta, orientation) async {
+            resultDelta = delta;
+            resultOrientation = orientation;
+          });
+
+      var object = client.notifierItemObjectForTest;
+      var methodCall = DBusMethodCall(
+          sender: 'org.freedesktop.DBus',
+          interface: 'org.freedesktop.StatusNotifierItem',
+          name: 'Scroll',
+          values: [DBusInt32(5), DBusString('horizontal')]);
+
+      var response = await object.handleMethodCall(methodCall);
+      expect(response, isA<DBusMethodSuccessResponse>());
+      expect(resultDelta, 5);
+      expect(resultOrientation, 'horizontal');
+    });
+  });
 }
