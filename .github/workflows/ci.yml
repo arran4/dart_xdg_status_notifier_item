@@ -215,8 +215,8 @@ jobs:
 
           if [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
             sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config user.name "google-labs-jules"
+            git config user.email "jules@google.com"
             git checkout -b "release/v$NEW_VERSION"
             git add pubspec.yaml
             git commit -m "Bump version to $NEW_VERSION"
