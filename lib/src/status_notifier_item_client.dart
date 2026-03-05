@@ -27,7 +27,7 @@ enum StatusNotifierItemCategory {
 }
 
 /// Status for notifier items.
-enum StatusNotifierItemStatus { passive, active }
+enum StatusNotifierItemStatus { passive, active, needsAttention }
 
 const _categoryNames = {
   StatusNotifierItemCategory.applicationStatus: 'ApplicationStatus',
@@ -39,6 +39,7 @@ const _categoryNames = {
 const _statusNames = {
   StatusNotifierItemStatus.passive: 'Passive',
   StatusNotifierItemStatus.active: 'Active'
+  StatusNotifierItemStatus.needsAttention: 'NeedsAttention'
 };
 
 String _encodeCategory(StatusNotifierItemCategory value) =>
@@ -383,7 +384,6 @@ class StatusNotifierItemClient {
   late final DBusMenuObject _menuObject;
   late final _StatusNotifierItemObject _notifierItemObject;
 
-  // FIXME: status enum
   /// The backend to use.
   final StatusNotifierItemBackend _backend;
 
