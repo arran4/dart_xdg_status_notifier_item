@@ -8,4 +8,4 @@ jobs:
       - name: Check if CLA signed
         uses: canonical/has-signed-canonical-cla@v1
         with:
-          exempted-bots: dependabot,renovate,google-labs-jules,google-labs-jules[bot]
+          exempted-bots: dependabot,renovate,google-labs-jules,google-labs-jules[bot],161369871+google-labs-jules[bot]
