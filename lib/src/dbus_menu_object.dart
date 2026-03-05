@@ -262,7 +262,7 @@ class DBusMenuObject extends DBusObject {
         var ids = methodCall.values[0].asInt32Array();
         var updatesNeeded = <int>[];
         var idErrors = <int>[];
-        for (var id in ids) {
+        await Future.wait(ids.map((id) async {
           var item = _getItem(id);
           if (item == null) {
             idErrors.add(id);
@@ -276,7 +276,7 @@ class DBusMenuObject extends DBusObject {
               ]);
             }
           }
-        }
+        }));
         return DBusMethodSuccessResponse(
             [DBusArray.int32(updatesNeeded), DBusArray.int32(idErrors)]);
       case 'Event':
