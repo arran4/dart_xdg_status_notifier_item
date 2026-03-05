@@ -5,7 +5,5 @@ jobs:
   cla-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check if CLA signed
-        uses: canonical/has-signed-canonical-cla@v1
-        with:
-          exempted-bots: dependabot,renovate,google-labs-jules,google-labs-jules[bot],161369871+google-labs-jules[bot]
+      - name: Skip CLA check (Fork)
+        run: echo "Skipping Canonical CLA check because we are forking."
