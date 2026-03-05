@@ -27,23 +27,25 @@ enum StatusNotifierItemCategory {
 }
 
 /// Status for notifier items.
-enum StatusNotifierItemStatus { passive, active }
+enum StatusNotifierItemStatus { passive, active, needsAttention }
+
+const _categoryMap = <StatusNotifierItemCategory, String>{
+  StatusNotifierItemCategory.applicationStatus: 'ApplicationStatus',
+  StatusNotifierItemCategory.communications: 'Communications',
+  StatusNotifierItemCategory.systemServices: 'SystemServices',
+  StatusNotifierItemCategory.hardware: 'Hardware'
+};
+
+const _statusMap = <StatusNotifierItemStatus, String>{
+  StatusNotifierItemStatus.passive: 'Passive',
+  StatusNotifierItemStatus.active: 'Active',
+  StatusNotifierItemStatus.needsAttention: 'NeedsAttention'
+};
 
 String _encodeCategory(StatusNotifierItemCategory value) =>
-    {
-      StatusNotifierItemCategory.applicationStatus: 'ApplicationStatus',
-      StatusNotifierItemCategory.communications: 'Communications',
-      StatusNotifierItemCategory.systemServices: 'SystemServices',
-      StatusNotifierItemCategory.hardware: 'Hardware'
-    }[value] ??
-    '';
+    _categoryMap[value] ?? '';
 
-String _encodeStatus(StatusNotifierItemStatus value) =>
-    {
-      StatusNotifierItemStatus.passive: 'Passive',
-      StatusNotifierItemStatus.active: 'Active'
-    }[value] ??
-    '';
+String _encodeStatus(StatusNotifierItemStatus value) => _statusMap[value] ?? '';
 
 /// A class representing raw image data for a status notifier item icon.
 class StatusNotifierIconPixmap {
@@ -381,7 +383,6 @@ class StatusNotifierItemClient {
   late final DBusMenuObject _menuObject;
   late final _StatusNotifierItemObject _notifierItemObject;
 
-  // FIXME: status enum
   /// The backend to use.
   final StatusNotifierItemBackend _backend;
 
