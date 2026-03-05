@@ -96,7 +96,8 @@ class _StatusNotifierItemObject extends DBusObject {
   final String id;
   String title;
   StatusNotifierItemStatus status;
-  final int windowId;
+  int windowId;
+  bool itemIsMenu;
   String iconName;
   List<StatusNotifierIconPixmap> iconPixmap;
   String overlayIconName;
@@ -117,6 +118,7 @@ class _StatusNotifierItemObject extends DBusObject {
       this.title = '',
       this.status = StatusNotifierItemStatus.active,
       this.windowId = 0,
+      this.itemIsMenu = false,
       this.iconName = '',
       this.iconPixmap = const [],
       this.overlayIconName = '',
@@ -329,7 +331,7 @@ class _StatusNotifierItemObject extends DBusObject {
           ]));
         }
       case 'ItemIsMenu':
-        return DBusGetPropertyResponse(DBusBoolean(false));
+        return DBusGetPropertyResponse(DBusBoolean(itemIsMenu));
       case 'Menu':
         return DBusGetPropertyResponse(menu);
       default:
@@ -362,7 +364,7 @@ class _StatusNotifierItemObject extends DBusObject {
             DBusString(''),
             DBusString('')
           ]),
-      'ItemIsMenu': DBusBoolean(false),
+      'ItemIsMenu': DBusBoolean(itemIsMenu),
       'Menu': menu
     });
   }
@@ -403,6 +405,22 @@ class StatusNotifierItemClient {
       _notifierItemObject.status = value;
       _notifierItemObject.emitNewStatus(value);
     }
+  }
+
+  /// Gets the current windowId.
+  int get windowId => _notifierItemObject.windowId;
+
+  /// Sets the windowId. (No DBus signal is defined for NewWindowId in the spec).
+  set windowId(int value) {
+    _notifierItemObject.windowId = value;
+  }
+
+  /// Gets whether this item is exclusively a menu.
+  bool get itemIsMenu => _notifierItemObject.itemIsMenu;
+
+  /// Sets whether this item is exclusively a menu.
+  set itemIsMenu(bool value) {
+    _notifierItemObject.itemIsMenu = value;
   }
 
   /// Gets the current iconName.
@@ -497,6 +515,7 @@ class StatusNotifierItemClient {
       String title = '',
       StatusNotifierItemStatus status = StatusNotifierItemStatus.active,
       int windowId = 0,
+      bool itemIsMenu = false,
       String iconName = '',
       List<StatusNotifierIconPixmap> iconPixmap = const [],
       String overlayIconName = '',
@@ -521,6 +540,7 @@ class StatusNotifierItemClient {
         title: title,
         status: status,
         windowId: windowId,
+        itemIsMenu: itemIsMenu,
         iconName: iconName,
         iconPixmap: iconPixmap,
         overlayIconName: overlayIconName,
@@ -537,21 +557,56 @@ class StatusNotifierItemClient {
   }
 
   String? _requestedName;
+  DBusRemoteObject? _watcherRemoteObject;
+  StreamSubscription<DBusSignal>? _hostRegisteredSubscription;
+
+  /// Triggered when the IsStatusNotifierHostRegistered property changes or when the StatusNotifierHostRegistered signal is received.
+  Future<void> Function(bool)? onHostRegisteredChanged;
+
+  /// Returns whether a StatusNotifierHost is currently registered and running.
+  Future<bool> get isHostRegistered async {
+    if (_watcherRemoteObject == null) return false;
+    var result = await _watcherRemoteObject!.getProperty(
+      '${_getNamespace()}.StatusNotifierWatcher',
+      'IsStatusNotifierHostRegistered',
+    );
+    return result.asBoolean();
+  }
+
+  /// Returns the protocol version of the StatusNotifierWatcher.
+  Future<int> get protocolVersion async {
+    if (_watcherRemoteObject == null) return -1;
+    var result = await _watcherRemoteObject!.getProperty(
+      '${_getNamespace()}.StatusNotifierWatcher',
+      'ProtocolVersion',
+    );
+    return result.asInt32();
+  }
+
+  /// Returns the currently registered status notifier items.
+  Future<List<String>> get registeredStatusNotifierItems async {
+    if (_watcherRemoteObject == null) return [];
+    var result = await _watcherRemoteObject!.getProperty(
+      '${_getNamespace()}.StatusNotifierWatcher',
+      'RegisteredStatusNotifierItems',
+    );
+    return result.asStringArray().toList();
+  }
+
+  String _getNamespace() {
+    switch (_backend) {
+      case StatusNotifierItemBackend.spec:
+        return 'org.freedesktop';
+      case StatusNotifierItemBackend.kde:
+        return 'org.kde';
+      case StatusNotifierItemBackend.ayatana:
+        return 'org.ayatana';
+    }
+  }
 
   // Connect to D-Bus and register this notifier item.
   Future<void> connect() async {
-    String namespace;
-    switch (_backend) {
-      case StatusNotifierItemBackend.spec:
-        namespace = 'org.freedesktop';
-        break;
-      case StatusNotifierItemBackend.kde:
-        namespace = 'org.kde';
-        break;
-      case StatusNotifierItemBackend.ayatana:
-        namespace = 'org.ayatana';
-        break;
-    }
+    String namespace = _getNamespace();
 
     var name = '$namespace.StatusNotifierItem-$pid-1';
     var requestResult = await _bus.requestName(name);
@@ -564,6 +619,10 @@ class StatusNotifierItemClient {
     // Put the item on the bus.
     await _bus.registerObject(_notifierItemObject);
 
+    _watcherRemoteObject = DBusRemoteObject(_bus,
+        name: '$namespace.StatusNotifierWatcher',
+        path: DBusObjectPath('/StatusNotifierWatcher'));
+
     // Register the item.
     await _bus.callMethod(
         destination: '$namespace.StatusNotifierWatcher',
@@ -573,30 +632,23 @@ class StatusNotifierItemClient {
         values: [DBusString(name)],
         replySignature: DBusSignature.empty);
 
+    // Listen for host registered signal
+    _hostRegisteredSubscription = DBusSignalStream(_bus,
+            sender: '$namespace.StatusNotifierWatcher',
+            path: DBusObjectPath('/StatusNotifierWatcher'),
+            interface: '$namespace.StatusNotifierWatcher',
+            name: 'StatusNotifierHostRegistered',
+            signature: DBusSignature.empty)
+        .listen((signal) {
+      onHostRegisteredChanged?.call(true);
+    });
+
     try {
-      var isHostRegistered = await DBusRemoteObject(_bus,
-              name: '$namespace.StatusNotifierWatcher',
-              path: DBusObjectPath('/StatusNotifierWatcher'))
-          .getProperty('$namespace.StatusNotifierWatcher',
-              'IsStatusNotifierHostRegistered');
-      _logger.info(
-          'IsStatusNotifierHostRegistered: ${isHostRegistered.asBoolean()}');
+      var hostReg = await isHostRegistered;
+      _logger.info('IsStatusNotifierHostRegistered: $hostReg');
     } catch (e) {
       _logger
           .warning('Failed to get IsStatusNotifierHostRegistered property: $e');
-    }
-
-    try {
-      var registeredItems = await DBusRemoteObject(_bus,
-              name: '$namespace.StatusNotifierWatcher',
-              path: DBusObjectPath('/StatusNotifierWatcher'))
-          .getProperty('$namespace.StatusNotifierWatcher',
-              'RegisteredStatusNotifierItems');
-      var items = registeredItems.asStringArray().join(', ');
-      _logger.info('RegisteredStatusNotifierItems: $items');
-    } catch (e) {
-      _logger
-          .warning('Failed to get RegisteredStatusNotifierItems property: $e');
     }
   }
 
@@ -607,6 +659,7 @@ class StatusNotifierItemClient {
 
   /// Terminates all active connections and unregisters the item. If a client remains unclosed, the Dart process may not terminate.
   Future<void> close() async {
+    await _hostRegisteredSubscription?.cancel();
     if (_requestedName != null) {
       await _bus.releaseName(_requestedName!);
       _requestedName = null;

@@ -20,18 +20,18 @@ This document lists the shortcomings and features that are not yet implemented o
 - [x] Add support for dynamically loading menu item layouts asynchronously to improve startup time.
 
 ## Specification Coverage
-- [ ] Fully implement and test `StatusNotifierItem` interface methods:
-    - [ ] `ContextMenu(x, y)`
-    - [ ] `Activate(x, y)`
-    - [ ] `SecondaryActivate(x, y)`
-    - [ ] `Scroll(delta, orientation)`
-- [ ] Fully implement and test `StatusNotifierItem` interface properties:
-    - [ ] `WindowId` updates
-    - [ ] `ItemIsMenu` boolean flag
-- [ ] Fully implement and test `StatusNotifierWatcher` interface interactions:
-    - [ ] Properties: `RegisteredStatusNotifierItems`, `IsStatusNotifierHostRegistered`, `ProtocolVersion`
-    - [ ] Methods: `RegisterStatusNotifierItem`, `RegisterStatusNotifierHost`
-    - [ ] Signals: `StatusNotifierItemRegistered`, `StatusNotifierItemUnregistered`, `StatusNotifierHostRegistered`
+- [x] Fully implement and test `StatusNotifierItem` interface methods:
+    - [x] `ContextMenu(x, y)`
+    - [x] `Activate(x, y)`
+    - [x] `SecondaryActivate(x, y)`
+    - [x] `Scroll(delta, orientation)`
+- [x] Fully implement and test `StatusNotifierItem` interface properties:
+    - [x] `WindowId` updates
+    - [x] `ItemIsMenu` boolean flag
+- [x] Fully implement and test `StatusNotifierWatcher` interface interactions:
+    - [x] Properties: `RegisteredStatusNotifierItems`, `IsStatusNotifierHostRegistered`, `ProtocolVersion`
+    - [x] Methods: `RegisterStatusNotifierItem`, `RegisterStatusNotifierHost`
+    - [x] Signals: `StatusNotifierItemRegistered`, `StatusNotifierItemUnregistered`, `StatusNotifierHostRegistered`
 - [ ] Support markup AND escaping markup when it's not desired (based on the `StatusNotifierItem` Markup spec).
 - [ ] Implement data sanitizers for icons and other inputs (based on the `StatusNotifierItem` Icons spec and real-world implementations).
 
