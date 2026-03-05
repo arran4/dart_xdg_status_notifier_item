@@ -38,7 +38,7 @@ const _categoryNames = {
 
 const _statusNames = {
   StatusNotifierItemStatus.passive: 'Passive',
-  StatusNotifierItemStatus.active: 'Active'
+  StatusNotifierItemStatus.active: 'Active',
   StatusNotifierItemStatus.needsAttention: 'NeedsAttention'
 };
 
