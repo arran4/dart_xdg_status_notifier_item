@@ -22,8 +22,13 @@ This document lists the shortcomings and features that are not yet implemented o
 ## Desktop Environments (KDE, GTK, Ayatana, etc.)
 - [ ] KDE (`org.kde.StatusNotifierWatcher`): Expand KDE-specific dbusmenu features if needed.
 - [x] Ayatana (`org.ayatana.StatusNotifierWatcher`): Add an `ayatana` backend enum to support Ubuntu/AppIndicator environments explicitly without relying on fallback specs.
+- [ ] Make sure the backend is dynamically switchable without limiting advanced features of a specific backend. These advanced features should be clearly communicated and documented.
 - [ ] Ubuntu (`com.canonical.dbusmenu`): Fully support canonical dbusmenu extensions.
 - [ ] Fallback support: For older desktop environments that do not support StatusNotifierItem at all, consider fallback paths (e.g., GtkStatusIcon/XEmbed), although this may be outside the pure DBus scope.
+
+## Integration Requirements
+- [x] Ensure full API support for `tray_manager` (`destroy`, `setIcon`, `setContextMenu`).
+- [x] Ensure full API support for `system_tray` (`initSystemTray`, `setSystemTrayInfo`, `setImage`, `setContextMenu`, `destroy`).
 
 ## Internal / Housekeeping
 - [ ] Make `Status` an enum mapped properly in client state updates.
