@@ -29,23 +29,24 @@ enum StatusNotifierItemCategory {
 /// Status for notifier items.
 enum StatusNotifierItemStatus { passive, active, needsAttention }
 
-const _categoryMap = <StatusNotifierItemCategory, String>{
+const _categoryNames = {
   StatusNotifierItemCategory.applicationStatus: 'ApplicationStatus',
   StatusNotifierItemCategory.communications: 'Communications',
   StatusNotifierItemCategory.systemServices: 'SystemServices',
   StatusNotifierItemCategory.hardware: 'Hardware'
 };
 
-const _statusMap = <StatusNotifierItemStatus, String>{
+const _statusNames = {
   StatusNotifierItemStatus.passive: 'Passive',
-  StatusNotifierItemStatus.active: 'Active',
+  StatusNotifierItemStatus.active: 'Active'
   StatusNotifierItemStatus.needsAttention: 'NeedsAttention'
 };
 
 String _encodeCategory(StatusNotifierItemCategory value) =>
-    _categoryMap[value] ?? '';
+    _categoryNames[value] ?? '';
 
-String _encodeStatus(StatusNotifierItemStatus value) => _statusMap[value] ?? '';
+String _encodeStatus(StatusNotifierItemStatus value) =>
+    _statusNames[value] ?? '';
 
 /// A class representing raw image data for a status notifier item icon.
 class StatusNotifierIconPixmap {

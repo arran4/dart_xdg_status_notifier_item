@@ -427,7 +427,7 @@ class DBusMenuObject extends DBusObject {
 
   // Get the item with the given [id].
   DBusMenuItem? _getItem(int id) {
-    return id >= 0 && id <= _items.length ? _items[id] : null;
+    return id >= 0 && id < _items.length ? _items[id] : null;
   }
 
   // Handle a received event.
