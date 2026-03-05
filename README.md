@@ -23,6 +23,8 @@ dart pub add dart_xdg_status_notifier_item
 flutter pub add dart_xdg_status_notifier_item
 ```
 
+## Sample
+
 ```dart
 import 'package:dart_xdg_status_notifier_item/xdg_status_notifier_item.dart';
 
@@ -45,4 +47,4 @@ void main() async {
 
 ## Contributing to xdg_status_notifier_item.dart
 
-We welcome contributions! See the [contribution guide](CONTRIBUTING.md) for more details.
+We welcome contributions! 
