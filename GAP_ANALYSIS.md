@@ -33,27 +33,13 @@ The `xdg_status_notifier_item` package exposes a `StatusNotifierItemClient` that
 1. **Initialization (`initSystemTray`)**: The client can be instantiated and registered using `client.connect()`.
 2. **Context Menus (`setContextMenu`)**: The client constructor requires a `DBusMenuItem` for the menu, and `updateMenu` can be used to update it later.
 
-### Gaps / What is missing:
+### Gaps Addressed:
 
 1. **Dynamically updating the icon (`setIcon`, `setImage`, `setSystemTrayInfo`)**:
-   Currently, the icon is set via an `iconName` string passed to the `StatusNotifierItemClient` constructor. There is no method to update the icon (e.g., `updateIconName(String newName)`) after the client has been initialized and connected to the D-Bus.
+   We now provide setters for `iconName`, `iconPixmap`, `status`, `title`, and other core properties. Using these will dynamically update the internal DBus object and emit the appropriate update signal to the active watchers.
 
 2. **Setting icons from raw image data/pixels**:
-   Both `tray_manager` and `system_tray` often rely on passing raw file paths or pixel buffers instead of relying purely on system theme icon names (like `computer-fail-symbolic`).
-   In `_StatusNotifierItemObject`, the `IconPixmap` D-Bus property (which is designed to handle raw pixel data) is currently stubbed out to return an empty array:
-   ```dart
-   case 'IconPixmap':
-     return DBusGetPropertyResponse(DBusArray(DBusSignature('(iiay)'), []));
-   ```
-   To fully support these tray packages, `xdg_status_notifier_item` would need to support decoding image files and exposing them via the `IconPixmap` property.
+   `StatusNotifierIconPixmap` is fully implemented and mapped to the `(iiay)` DBus signature, allowing direct transmission of raw image buffers for cross-platform app plugins like `tray_manager` and `system_tray`.
 
 3. **Explicit Destruction (`destroy`)**:
-   The `StatusNotifierItemClient` provides a `close()` method:
-   ```dart
-   Future<void> close() async {
-     if (_closeBus) {
-       await _bus.close();
-     }
-   }
-   ```
-   This simply closes the D-Bus client connection (if the client was internally created). It does not explicitly send a command to unregister the item from the watcher (e.g., `org.kde.StatusNotifierWatcher`'s `UnregisterStatusNotifierItem`, if such a thing exists, or properly tearing down the registered objects) which is often desirable for a rigorous `destroy()` method.
+   `StatusNotifierItemClient.close()` has been updated to explicitly release the requested D-Bus name and gracefully unregister the exposed D-Bus objects before closing the D-Bus connection. This accurately aligns with the DBus protocol specification for tearing down services.

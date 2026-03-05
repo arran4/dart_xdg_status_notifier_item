@@ -5,14 +5,14 @@ This document lists the shortcomings and features that are not yet implemented o
 ## StatusNotifierItem Specification
 
 ### Properties and Signals
-- [ ] Implement `NewTitle` signal to notify the host when `Title` changes.
-- [ ] Implement `NewIcon` signal to notify the host when `IconName` or `IconPixmap` changes.
-- [ ] Implement `NewAttentionIcon` signal to notify the host when `AttentionIconName` or `AttentionIconPixmap` changes.
-- [ ] Implement `NewOverlayIcon` signal to notify the host when `OverlayIconName` or `OverlayIconPixmap` changes.
-- [ ] Implement `NewToolTip` signal to notify the host when `ToolTip` changes.
-- [ ] Implement `NewStatus` signal to notify the host when `Status` changes.
-- [ ] Fully implement `IconPixmap`, `OverlayIconPixmap`, and `AttentionIconPixmap` properties (currently they return empty arrays).
-- [ ] Fully implement `ToolTip` property content serialization (currently returns an empty struct).
+- [x] Implement `NewTitle` signal to notify the host when `Title` changes.
+- [x] Implement `NewIcon` signal to notify the host when `IconName` or `IconPixmap` changes.
+- [x] Implement `NewAttentionIcon` signal to notify the host when `AttentionIconName` or `AttentionIconPixmap` changes.
+- [x] Implement `NewOverlayIcon` signal to notify the host when `OverlayIconName` or `OverlayIconPixmap` changes.
+- [x] Implement `NewToolTip` signal to notify the host when `ToolTip` changes.
+- [x] Implement `NewStatus` signal to notify the host when `Status` changes.
+- [x] Fully implement `IconPixmap`, `OverlayIconPixmap`, and `AttentionIconPixmap` properties (currently they return empty arrays).
+- [x] Fully implement `ToolTip` property content serialization (currently returns an empty struct).
 
 ### Menus
 - [ ] Support icon data transmission over DBusMenu to render icons correctly in system trays (e.g. `icon-name` or `icon-data`).
@@ -21,7 +21,7 @@ This document lists the shortcomings and features that are not yet implemented o
 
 ## Desktop Environments (KDE, GTK, Ayatana, etc.)
 - [ ] KDE (`org.kde.StatusNotifierWatcher`): Expand KDE-specific dbusmenu features if needed.
-- [ ] Ayatana (`org.ayatana.StatusNotifierWatcher`): Add an `ayatana` backend enum to support Ubuntu/AppIndicator environments explicitly without relying on fallback specs.
+- [x] Ayatana (`org.ayatana.StatusNotifierWatcher`): Add an `ayatana` backend enum to support Ubuntu/AppIndicator environments explicitly without relying on fallback specs.
 - [ ] Ubuntu (`com.canonical.dbusmenu`): Fully support canonical dbusmenu extensions.
 - [ ] Fallback support: For older desktop environments that do not support StatusNotifierItem at all, consider fallback paths (e.g., GtkStatusIcon/XEmbed), although this may be outside the pure DBus scope.
 
