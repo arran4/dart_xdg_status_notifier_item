@@ -1,0 +1,241 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+      - 'v*.*.*'
+      - 'v*.*.*-rc*'
+      - 'v*.*.*-beta*'
+      - 'test-*'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, closed]
+    branches: [main, master]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Pipeline mode"
+        required: true
+        default: "validate"
+        type: choice
+        options:
+          - validate
+          - lint-fix
+          - build
+          - release-snapshot
+          - release
+          - monthly-maintenance
+      release_mode:
+        description: "Release mode"
+        required: false
+        default: "snapshot"
+        type: choice
+        options: [snapshot, release]
+      release_increment:
+        description: "Version increment to apply when preparing release tags"
+        required: false
+        default: "patch"
+        type: choice
+        options: [major, minor, patch, none]
+      prerelease_channel:
+        description: "Pre-release channel"
+        required: false
+        default: "none"
+        type: choice
+        options: [none, uat, test, rc, beta, alpha]
+      prerelease_number:
+        description: "Optional pre-release sequence number (for example: 1 in -rc.1)"
+        required: false
+        default: ""
+        type: string
+      increment_mode:
+        description: "Alternative increment control style (kagura-style)"
+        required: false
+        default: "release"
+        type: choice
+        options: [major, minor, patch, release, test]
+      release_version_override:
+        description: "Optional explicit release version (for example 2.4.0 or 2.4.0-uat.2)"
+        required: false
+        default: ""
+        type: string
+  schedule:
+    - cron: '17 3 1 * *'
+    - cron: '41 2 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
+  packages: write
+  security-events: write
+
+jobs:
+  route:
+    name: Route event
+    runs-on: ubuntu-latest
+    outputs:
+      run_code_checks: ${{ steps.route.outputs.run_code_checks }}
+      run_pr_meta_checks: ${{ steps.route.outputs.run_pr_meta_checks }}
+      run_cleanup: ${{ steps.route.outputs.run_cleanup }}
+      run_release: ${{ steps.route.outputs.run_release }}
+      is_monthly: ${{ steps.route.outputs.is_monthly }}
+    steps:
+      - id: route
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          run_code_checks=false
+          run_pr_meta_checks=false
+          run_cleanup=false
+          run_release=false
+          is_monthly=false
+
+          case "${{ github.event_name }}" in
+            push)
+              run_code_checks=true
+              ;;
+            pull_request)
+              if [[ "${{ github.event.action }}" == "closed" ]]; then
+                run_cleanup=true
+              else
+                run_pr_meta_checks=true
+                run_code_checks=true
+              fi
+              ;;
+            release)
+              run_release=true
+              ;;
+            workflow_dispatch)
+              run_code_checks=true
+              if [[ "${{ inputs.mode }}" == "release" || "${{ inputs.mode }}" == "release-snapshot" ]]; then
+                run_release=true
+              fi
+              if [[ "${{ inputs.mode }}" == "monthly-maintenance" ]]; then
+                is_monthly=true
+              fi
+              ;;
+            schedule)
+              run_code_checks=true
+              if [[ "${{ github.event.schedule }}" == "17 3 1 * *" ]]; then
+                is_monthly=true
+              fi
+              ;;
+          esac
+
+          echo "run_code_checks=$run_code_checks" >> "$GITHUB_OUTPUT"
+          echo "run_pr_meta_checks=$run_pr_meta_checks" >> "$GITHUB_OUTPUT"
+          echo "run_cleanup=$run_cleanup" >> "$GITHUB_OUTPUT"
+          echo "run_release=$run_release" >> "$GITHUB_OUTPUT"
+          echo "is_monthly=$is_monthly" >> "$GITHUB_OUTPUT"
+
+  discover:
+    name: Discover capabilities and cost profile
+    needs: route
+    runs-on: ubuntu-latest
+    outputs:
+      profile: ${{ steps.profile.outputs.profile }}
+      has_dart: ${{ steps.detect.outputs.has_dart }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -f pubspec.yaml ]] && echo "has_dart=true" >> "$GITHUB_OUTPUT" || echo "has_dart=false" >> "$GITHUB_OUTPUT"
+
+      - id: profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event.repository.private }}" == "true" ]]; then
+            echo "profile=private" >> "$GITHUB_OUTPUT"
+          else
+            echo "profile=public" >> "$GITHUB_OUTPUT"
+          fi
+
+  dart-analyze-test:
+    name: Dart analyze/test
+    needs: [route, discover]
+    if: ${{ needs.discover.outputs.has_dart == 'true' && needs.route.outputs.run_code_checks == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - run: dart --version
+      - run: dart pub get
+      - run: dart format --set-exit-if-changed .
+      - run: dart analyze
+      - run: dart test
+
+  dart-release-prep:
+    name: Dart release prep
+    needs: [route, discover, dart-analyze-test]
+    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.mode == 'release' || inputs.mode == 'release-snapshot') && needs.discover.outputs.has_dart == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dart-lang/setup-dart@v1
+      - name: Compute version and tag
+        env:
+          INCREMENT: ${{ inputs.release_increment }}
+          MANUAL_VERSION_INPUT: ${{ inputs.release_version_override }}
+        run: |
+          set -euo pipefail
+          PUBSPEC_VERSION=$(awk '/^version:/ {print $2}' pubspec.yaml)
+          git fetch --tags
+          HIGHEST_TAG=$(git tag -l "v*" | sed 's/^v//' | sort -V | tail -n 1)
+          [ -z "$HIGHEST_TAG" ] && HIGHEST_TAG="0.0.0"
+
+          CURRENT_VERSION=$(echo -e "$PUBSPEC_VERSION\n$HIGHEST_TAG" | sort -V | tail -n 1)
+
+          if [ -n "$MANUAL_VERSION_INPUT" ]; then
+            NEW_VERSION="$MANUAL_VERSION_INPUT"
+          elif [ "$INCREMENT" = "none" ]; then
+            NEW_VERSION="$CURRENT_VERSION"
+          else
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+            case "$INCREMENT" in
+              major) NEW_VERSION="$((MAJOR+1)).0.0" ;;
+              minor) NEW_VERSION="$MAJOR.$((MINOR+1)).0" ;;
+              *) NEW_VERSION="$MAJOR.$MINOR.$((PATCH+1))" ;;
+            esac
+          fi
+
+          if [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
+            sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+            git config user.name "google-labs-jules"
+            git config user.email "jules@google.com"
+            git checkout -b "release/v$NEW_VERSION"
+            git add pubspec.yaml
+            git commit -m "Bump version to $NEW_VERSION"
+            git tag "v$NEW_VERSION"
+            git push origin "v$NEW_VERSION"
+            git push origin "release/v$NEW_VERSION"
+
+            # Publish to pub.dev would happen here or via dart native publish action
+          else
+            echo "Version is the same, no need to bump."
+          fi
+
+  publish-dart:
+    name: Publish Dart Package to pub.dev
+    needs: [route, discover, dart-analyze-test, dart-release-prep]
+    if: ${{ needs.route.outputs.run_release == 'true' && needs.discover.outputs.has_dart == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Publish to pub.dev
+        run: dart pub publish --force
