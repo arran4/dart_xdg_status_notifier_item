@@ -47,7 +47,7 @@ This document lists the shortcomings and features that are not yet implemented o
 - [x] Ensure full API support for `system_tray` (`initSystemTray`, `setSystemTrayInfo`, `setImage`, `setContextMenu`, `destroy`).
 
 ## Internal / Housekeeping
-- [ ] Make `Status` an enum mapped properly in client state updates.
+- [x] Make `Status` an enum mapped properly in client state updates.
 - [ ] Update DBus Menu item `Status` properties and manage state dynamically.
 - [ ] Add tests for property changes and signal emissions once implemented.
 
