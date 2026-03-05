@@ -1,4 +1,4 @@
-import 'package:xdg_status_notifier_item/xdg_status_notifier_item.dart';
+import 'package:dart_xdg_status_notifier_item/xdg_status_notifier_item.dart';
 
 late StatusNotifierItemClient client;
 var itemClicked = false;
