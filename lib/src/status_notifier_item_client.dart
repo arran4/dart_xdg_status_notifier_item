@@ -1,8 +1,18 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:dbus/dbus.dart';
+import 'package:logging/logging.dart';
 
 import 'dbus_menu_object.dart';
+
+/// Backend for the status notifier item.
+enum StatusNotifierItemBackend {
+  /// The standard FreeDesktop specification (org.freedesktop).
+  spec,
+
+  /// The KDE implementation (org.kde).
+  kde
+}
 
 /// Category for notifier items.
 enum StatusNotifierItemCategory {
@@ -247,6 +257,8 @@ class _StatusNotifierItemObject extends DBusObject {
 
 /// A client that registers status notifier items.
 class StatusNotifierItemClient {
+  final _logger = Logger('xdg_status_notifier_item');
+
   /// The bus this client is connected to.
   final DBusClient _bus;
   final bool _closeBus;
@@ -255,9 +267,13 @@ class StatusNotifierItemClient {
   late final _StatusNotifierItemObject _notifierItemObject;
 
   // FIXME: status enum
+  /// The backend to use.
+  final StatusNotifierItemBackend _backend;
+
   /// Creates a new status notifier item client. If [bus] is provided connect to the given D-Bus server.
   StatusNotifierItemClient(
       {required String id,
+      StatusNotifierItemBackend backend = StatusNotifierItemBackend.spec,
       StatusNotifierItemCategory category =
           StatusNotifierItemCategory.applicationStatus,
       String title = '',
@@ -273,7 +289,8 @@ class StatusNotifierItemClient {
       Future<void> Function(int x, int y)? onSecondaryActivate,
       Future<void> Function(int delta, String orientation)? onScroll,
       DBusClient? bus})
-      : _bus = bus ?? DBusClient.session(),
+      : _backend = backend,
+        _bus = bus ?? DBusClient.session(),
         _closeBus = bus == null {
     _menuObject = DBusMenuObject(DBusObjectPath('/Menu'), menu);
     _notifierItemObject = _StatusNotifierItemObject(
@@ -295,7 +312,17 @@ class StatusNotifierItemClient {
 
   // Connect to D-Bus and register this notifier item.
   Future<void> connect() async {
-    var name = 'org.kde.StatusNotifierItem-$pid-1';
+    String namespace;
+    switch (_backend) {
+      case StatusNotifierItemBackend.spec:
+        namespace = 'org.freedesktop';
+        break;
+      case StatusNotifierItemBackend.kde:
+        namespace = 'org.kde';
+        break;
+    }
+
+    var name = '$namespace.StatusNotifierItem-$pid-1';
     var requestResult = await _bus.requestName(name);
     assert(requestResult == DBusRequestNameReply.primaryOwner);
 
@@ -307,12 +334,38 @@ class StatusNotifierItemClient {
 
     // Register the item.
     await _bus.callMethod(
-        destination: 'org.kde.StatusNotifierWatcher',
+        destination: '$namespace.StatusNotifierWatcher',
         path: DBusObjectPath('/StatusNotifierWatcher'),
-        interface: 'org.kde.StatusNotifierWatcher',
+        interface: '$namespace.StatusNotifierWatcher',
         name: 'RegisterStatusNotifierItem',
         values: [DBusString(name)],
         replySignature: DBusSignature.empty);
+
+    try {
+      var isHostRegistered = await DBusRemoteObject(_bus,
+              name: '$namespace.StatusNotifierWatcher',
+              path: DBusObjectPath('/StatusNotifierWatcher'))
+          .getProperty('$namespace.StatusNotifierWatcher',
+              'IsStatusNotifierHostRegistered');
+      _logger.info(
+          'IsStatusNotifierHostRegistered: ${isHostRegistered.asBoolean()}');
+    } catch (e) {
+      _logger
+          .warning('Failed to get IsStatusNotifierHostRegistered property: $e');
+    }
+
+    try {
+      var registeredItems = await DBusRemoteObject(_bus,
+              name: '$namespace.StatusNotifierWatcher',
+              path: DBusObjectPath('/StatusNotifierWatcher'))
+          .getProperty('$namespace.StatusNotifierWatcher',
+              'RegisteredStatusNotifierItems');
+      var items = registeredItems.asStringArray().join(', ');
+      _logger.info('RegisteredStatusNotifierItems: $items');
+    } catch (e) {
+      _logger
+          .warning('Failed to get RegisteredStatusNotifierItems property: $e');
+    }
   }
 
   /// Updates the menu shown.

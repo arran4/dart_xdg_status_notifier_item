@@ -5,11 +5,14 @@ import 'package:xdg_status_notifier_item/xdg_status_notifier_item.dart';
 import 'package:test/test.dart';
 
 class MockNotifierWatcherObject extends DBusObject {
-  MockNotifierWatcherObject() : super(DBusObjectPath('/StatusNotifierWatcher'));
+  final String namespace;
+
+  MockNotifierWatcherObject(this.namespace)
+      : super(DBusObjectPath('/StatusNotifierWatcher'));
 
   @override
   Future<DBusMethodResponse> handleMethodCall(DBusMethodCall methodCall) async {
-    if (methodCall.interface != 'org.kde.StatusNotifierWatcher') {
+    if (methodCall.interface != '$namespace.StatusNotifierWatcher') {
       return DBusMethodErrorResponse.unknownInterface();
     }
 
@@ -25,19 +28,21 @@ class MockNotifierWatcherObject extends DBusObject {
 
 class MockNotifierWatcherServer extends DBusClient {
   late final MockNotifierWatcherObject _root;
+  final String namespace;
 
-  MockNotifierWatcherServer(DBusAddress clientAddress) : super(clientAddress) {
-    _root = MockNotifierWatcherObject();
+  MockNotifierWatcherServer(DBusAddress clientAddress, this.namespace)
+      : super(clientAddress) {
+    _root = MockNotifierWatcherObject(namespace);
   }
 
   Future<void> start() async {
-    await requestName('org.kde.StatusNotifierWatcher');
+    await requestName('$namespace.StatusNotifierWatcher');
     await registerObject(_root);
   }
 }
 
 void main() {
-  test('connect', () async {
+  test('connect (spec backend)', () async {
     var server = DBusServer();
     var clientAddress =
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
@@ -45,14 +50,42 @@ void main() {
       await server.close();
     });
 
-    var watcher = MockNotifierWatcherServer(clientAddress);
+    var watcher = MockNotifierWatcherServer(clientAddress, 'org.freedesktop');
     await watcher.start();
     addTearDown(() async {
       await watcher.close();
     });
 
     var client = StatusNotifierItemClient(
-        id: 'test', menu: DBusMenuItem(), bus: DBusClient(clientAddress));
+        id: 'test',
+        backend: StatusNotifierItemBackend.spec,
+        menu: DBusMenuItem(),
+        bus: DBusClient(clientAddress));
+    addTearDown(() async {
+      await client.close();
+    });
+    await client.connect();
+  });
+
+  test('connect (kde backend)', () async {
+    var server = DBusServer();
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+    addTearDown(() async {
+      await server.close();
+    });
+
+    var watcher = MockNotifierWatcherServer(clientAddress, 'org.kde');
+    await watcher.start();
+    addTearDown(() async {
+      await watcher.close();
+    });
+
+    var client = StatusNotifierItemClient(
+        id: 'test',
+        backend: StatusNotifierItemBackend.kde,
+        menu: DBusMenuItem(),
+        bus: DBusClient(clientAddress));
     addTearDown(() async {
       await client.close();
     });
