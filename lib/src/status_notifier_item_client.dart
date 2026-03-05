@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dbus/dbus.dart';
 import 'package:logging/logging.dart';
 
@@ -11,7 +12,10 @@ enum StatusNotifierItemBackend {
   spec,
 
   /// The KDE implementation (org.kde).
-  kde
+  kde,
+
+  /// The Ayatana implementation (org.ayatana).
+  ayatana
 }
 
 /// Category for notifier items.
@@ -41,16 +45,67 @@ String _encodeStatus(StatusNotifierItemStatus value) =>
     }[value] ??
     '';
 
+/// A class representing raw image data for a status notifier item icon.
+class StatusNotifierIconPixmap {
+  final int width;
+  final int height;
+  final Uint8List pixels;
+
+  StatusNotifierIconPixmap({
+    required this.width,
+    required this.height,
+    required this.pixels,
+  });
+
+  DBusStruct toDBusStruct() {
+    return DBusStruct([
+      DBusInt32(width),
+      DBusInt32(height),
+      DBusArray.byte(pixels),
+    ]);
+  }
+}
+
+/// A class representing a tooltip for a status notifier item.
+class StatusNotifierToolTip {
+  final String iconName;
+  final List<StatusNotifierIconPixmap> iconPixmap;
+  final String title;
+  final String body;
+
+  StatusNotifierToolTip({
+    required this.iconName,
+    required this.iconPixmap,
+    required this.title,
+    required this.body,
+  });
+
+  DBusStruct toDBusStruct() {
+    return DBusStruct([
+      DBusString(iconName),
+      DBusArray(
+          DBusSignature('(iiay)'), iconPixmap.map((e) => e.toDBusStruct())),
+      DBusString(title),
+      DBusString(body),
+    ]);
+  }
+}
+
 class _StatusNotifierItemObject extends DBusObject {
   final StatusNotifierItemCategory category;
   final String id;
   String title;
   StatusNotifierItemStatus status;
-  final int windowId;
+  int windowId;
+  bool itemIsMenu;
   String iconName;
+  List<StatusNotifierIconPixmap> iconPixmap;
   String overlayIconName;
+  List<StatusNotifierIconPixmap> overlayIconPixmap;
   String attentionIconName;
+  List<StatusNotifierIconPixmap> attentionIconPixmap;
   String attentionMovieName;
+  StatusNotifierToolTip? toolTip;
   final DBusObjectPath menu;
   Future<void> Function(int x, int y)? onContextMenu;
   Future<void> Function(int x, int y)? onActivate;
@@ -63,10 +118,15 @@ class _StatusNotifierItemObject extends DBusObject {
       this.title = '',
       this.status = StatusNotifierItemStatus.active,
       this.windowId = 0,
+      this.itemIsMenu = false,
       this.iconName = '',
+      this.iconPixmap = const [],
       this.overlayIconName = '',
+      this.overlayIconPixmap = const [],
       this.attentionIconName = '',
+      this.attentionIconPixmap = const [],
       this.attentionMovieName = '',
+      this.toolTip,
       this.menu = DBusObjectPath.root,
       this.onContextMenu,
       this.onActivate,
@@ -106,7 +166,17 @@ class _StatusNotifierItemObject extends DBusObject {
           DBusIntrospectArgument(DBusSignature('s'), DBusArgumentDirection.in_,
               name: 'token')
         ])
-      ], signals: [], properties: [
+      ], signals: [
+        DBusIntrospectSignal('NewTitle'),
+        DBusIntrospectSignal('NewIcon'),
+        DBusIntrospectSignal('NewAttentionIcon'),
+        DBusIntrospectSignal('NewOverlayIcon'),
+        DBusIntrospectSignal('NewToolTip'),
+        DBusIntrospectSignal('NewStatus', args: [
+          DBusIntrospectArgument(DBusSignature('s'), DBusArgumentDirection.out,
+              name: 'status')
+        ])
+      ], properties: [
         DBusIntrospectProperty('Category', DBusSignature('s'),
             access: DBusPropertyAccess.read),
         DBusIntrospectProperty('Id', DBusSignature('s'),
@@ -139,6 +209,31 @@ class _StatusNotifierItemObject extends DBusObject {
             access: DBusPropertyAccess.read)
       ])
     ];
+  }
+
+  void emitNewTitle() {
+    emitSignal('org.freedesktop.StatusNotifierItem', 'NewTitle', []);
+  }
+
+  void emitNewIcon() {
+    emitSignal('org.freedesktop.StatusNotifierItem', 'NewIcon', []);
+  }
+
+  void emitNewAttentionIcon() {
+    emitSignal('org.freedesktop.StatusNotifierItem', 'NewAttentionIcon', []);
+  }
+
+  void emitNewOverlayIcon() {
+    emitSignal('org.freedesktop.StatusNotifierItem', 'NewOverlayIcon', []);
+  }
+
+  void emitNewToolTip() {
+    emitSignal('org.freedesktop.StatusNotifierItem', 'NewToolTip', []);
+  }
+
+  void emitNewStatus(StatusNotifierItemStatus newStatus) {
+    emitSignal('org.freedesktop.StatusNotifierItem', 'NewStatus',
+        [DBusString(_encodeStatus(newStatus))]);
   }
 
   @override
@@ -210,26 +305,33 @@ class _StatusNotifierItemObject extends DBusObject {
       case 'IconName':
         return DBusGetPropertyResponse(DBusString(iconName));
       case 'IconPixmap':
-        return DBusGetPropertyResponse(DBusArray(DBusSignature('(iiay)'), []));
+        return DBusGetPropertyResponse(DBusArray(
+            DBusSignature('(iiay)'), iconPixmap.map((e) => e.toDBusStruct())));
       case 'OverlayIconName':
         return DBusGetPropertyResponse(DBusString(overlayIconName));
       case 'OverlayIconPixmap':
-        return DBusGetPropertyResponse(DBusArray(DBusSignature('(iiay)'), []));
+        return DBusGetPropertyResponse(DBusArray(DBusSignature('(iiay)'),
+            overlayIconPixmap.map((e) => e.toDBusStruct())));
       case 'AttentionIconName':
         return DBusGetPropertyResponse(DBusString(attentionIconName));
       case 'AttentionIconPixmap':
-        return DBusGetPropertyResponse(DBusArray(DBusSignature('(iiay)'), []));
+        return DBusGetPropertyResponse(DBusArray(DBusSignature('(iiay)'),
+            attentionIconPixmap.map((e) => e.toDBusStruct())));
       case 'AttentionMovieName':
         return DBusGetPropertyResponse(DBusString(attentionMovieName));
       case 'ToolTip':
-        return DBusGetPropertyResponse(DBusStruct([
-          DBusString(''),
-          DBusArray(DBusSignature('(iiay)'), []),
-          DBusString(''),
-          DBusString('')
-        ]));
+        if (toolTip != null) {
+          return DBusGetPropertyResponse(toolTip!.toDBusStruct());
+        } else {
+          return DBusGetPropertyResponse(DBusStruct([
+            DBusString(''),
+            DBusArray(DBusSignature('(iiay)'), []),
+            DBusString(''),
+            DBusString('')
+          ]));
+        }
       case 'ItemIsMenu':
-        return DBusGetPropertyResponse(DBusBoolean(false));
+        return DBusGetPropertyResponse(DBusBoolean(itemIsMenu));
       case 'Menu':
         return DBusGetPropertyResponse(menu);
       default:
@@ -246,10 +348,23 @@ class _StatusNotifierItemObject extends DBusObject {
       'Status': DBusString(_encodeStatus(status)),
       'WindowId': DBusInt32(windowId),
       'IconName': DBusString(iconName),
+      'IconPixmap': DBusArray(
+          DBusSignature('(iiay)'), iconPixmap.map((e) => e.toDBusStruct())),
       'OverlayIconName': DBusString(overlayIconName),
+      'OverlayIconPixmap': DBusArray(DBusSignature('(iiay)'),
+          overlayIconPixmap.map((e) => e.toDBusStruct())),
       'AttentionIconName': DBusString(attentionIconName),
+      'AttentionIconPixmap': DBusArray(DBusSignature('(iiay)'),
+          attentionIconPixmap.map((e) => e.toDBusStruct())),
       'AttentionMovieName': DBusString(attentionMovieName),
-      'ItemIsMenu': DBusBoolean(false),
+      'ToolTip': toolTip?.toDBusStruct() ??
+          DBusStruct([
+            DBusString(''),
+            DBusArray(DBusSignature('(iiay)'), []),
+            DBusString(''),
+            DBusString('')
+          ]),
+      'ItemIsMenu': DBusBoolean(itemIsMenu),
       'Menu': menu
     });
   }
@@ -270,6 +385,127 @@ class StatusNotifierItemClient {
   /// The backend to use.
   final StatusNotifierItemBackend _backend;
 
+  /// Gets the current title.
+  String get title => _notifierItemObject.title;
+
+  /// Sets the title and emits a NewTitle signal.
+  set title(String value) {
+    if (_notifierItemObject.title != value) {
+      _notifierItemObject.title = value;
+      _notifierItemObject.emitNewTitle();
+    }
+  }
+
+  /// Gets the current status.
+  StatusNotifierItemStatus get status => _notifierItemObject.status;
+
+  /// Sets the status and emits a NewStatus signal.
+  set status(StatusNotifierItemStatus value) {
+    if (_notifierItemObject.status != value) {
+      _notifierItemObject.status = value;
+      _notifierItemObject.emitNewStatus(value);
+    }
+  }
+
+  /// Gets the current windowId.
+  int get windowId => _notifierItemObject.windowId;
+
+  /// Sets the windowId. (No DBus signal is defined for NewWindowId in the spec).
+  set windowId(int value) {
+    _notifierItemObject.windowId = value;
+  }
+
+  /// Gets whether this item is exclusively a menu.
+  bool get itemIsMenu => _notifierItemObject.itemIsMenu;
+
+  /// Sets whether this item is exclusively a menu.
+  set itemIsMenu(bool value) {
+    _notifierItemObject.itemIsMenu = value;
+  }
+
+  /// Gets the current iconName.
+  String get iconName => _notifierItemObject.iconName;
+
+  /// Sets the iconName and emits a NewIcon signal.
+  set iconName(String value) {
+    if (_notifierItemObject.iconName != value) {
+      _notifierItemObject.iconName = value;
+      _notifierItemObject.emitNewIcon();
+    }
+  }
+
+  /// Gets the current iconPixmap.
+  List<StatusNotifierIconPixmap> get iconPixmap =>
+      _notifierItemObject.iconPixmap;
+
+  /// Sets the iconPixmap and emits a NewIcon signal.
+  set iconPixmap(List<StatusNotifierIconPixmap> value) {
+    _notifierItemObject.iconPixmap = value;
+    _notifierItemObject.emitNewIcon();
+  }
+
+  /// Gets the current overlayIconName.
+  String get overlayIconName => _notifierItemObject.overlayIconName;
+
+  /// Sets the overlayIconName and emits a NewOverlayIcon signal.
+  set overlayIconName(String value) {
+    if (_notifierItemObject.overlayIconName != value) {
+      _notifierItemObject.overlayIconName = value;
+      _notifierItemObject.emitNewOverlayIcon();
+    }
+  }
+
+  /// Gets the current overlayIconPixmap.
+  List<StatusNotifierIconPixmap> get overlayIconPixmap =>
+      _notifierItemObject.overlayIconPixmap;
+
+  /// Sets the overlayIconPixmap and emits a NewOverlayIcon signal.
+  set overlayIconPixmap(List<StatusNotifierIconPixmap> value) {
+    _notifierItemObject.overlayIconPixmap = value;
+    _notifierItemObject.emitNewOverlayIcon();
+  }
+
+  /// Gets the current attentionIconName.
+  String get attentionIconName => _notifierItemObject.attentionIconName;
+
+  /// Sets the attentionIconName and emits a NewAttentionIcon signal.
+  set attentionIconName(String value) {
+    if (_notifierItemObject.attentionIconName != value) {
+      _notifierItemObject.attentionIconName = value;
+      _notifierItemObject.emitNewAttentionIcon();
+    }
+  }
+
+  /// Gets the current attentionIconPixmap.
+  List<StatusNotifierIconPixmap> get attentionIconPixmap =>
+      _notifierItemObject.attentionIconPixmap;
+
+  /// Sets the attentionIconPixmap and emits a NewAttentionIcon signal.
+  set attentionIconPixmap(List<StatusNotifierIconPixmap> value) {
+    _notifierItemObject.attentionIconPixmap = value;
+    _notifierItemObject.emitNewAttentionIcon();
+  }
+
+  /// Gets the current attentionMovieName.
+  String get attentionMovieName => _notifierItemObject.attentionMovieName;
+
+  /// Sets the attentionMovieName and emits a NewAttentionIcon signal.
+  set attentionMovieName(String value) {
+    if (_notifierItemObject.attentionMovieName != value) {
+      _notifierItemObject.attentionMovieName = value;
+      _notifierItemObject.emitNewAttentionIcon();
+    }
+  }
+
+  /// Gets the current toolTip.
+  StatusNotifierToolTip? get toolTip => _notifierItemObject.toolTip;
+
+  /// Sets the toolTip and emits a NewToolTip signal.
+  set toolTip(StatusNotifierToolTip? value) {
+    _notifierItemObject.toolTip = value;
+    _notifierItemObject.emitNewToolTip();
+  }
+
   /// Creates a new status notifier item client. If [bus] is provided connect to the given D-Bus server.
   StatusNotifierItemClient(
       {required String id,
@@ -279,10 +515,15 @@ class StatusNotifierItemClient {
       String title = '',
       StatusNotifierItemStatus status = StatusNotifierItemStatus.active,
       int windowId = 0,
+      bool itemIsMenu = false,
       String iconName = '',
+      List<StatusNotifierIconPixmap> iconPixmap = const [],
       String overlayIconName = '',
+      List<StatusNotifierIconPixmap> overlayIconPixmap = const [],
       String attentionIconName = '',
+      List<StatusNotifierIconPixmap> attentionIconPixmap = const [],
       String attentionMovieName = '',
+      StatusNotifierToolTip? toolTip,
       required DBusMenuItem menu,
       Future<void> Function(int x, int y)? onContextMenu,
       Future<void> Function(int x, int y)? onActivate,
@@ -299,10 +540,15 @@ class StatusNotifierItemClient {
         title: title,
         status: status,
         windowId: windowId,
+        itemIsMenu: itemIsMenu,
         iconName: iconName,
+        iconPixmap: iconPixmap,
         overlayIconName: overlayIconName,
+        overlayIconPixmap: overlayIconPixmap,
         attentionIconName: attentionIconName,
+        attentionIconPixmap: attentionIconPixmap,
         attentionMovieName: attentionMovieName,
+        toolTip: toolTip,
         menu: _menuObject.path,
         onContextMenu: onContextMenu,
         onActivate: onActivate,
@@ -310,27 +556,72 @@ class StatusNotifierItemClient {
         onScroll: onScroll);
   }
 
-  // Connect to D-Bus and register this notifier item.
-  Future<void> connect() async {
-    String namespace;
+  String? _requestedName;
+  DBusRemoteObject? _watcherRemoteObject;
+  StreamSubscription<DBusSignal>? _hostRegisteredSubscription;
+
+  /// Triggered when the IsStatusNotifierHostRegistered property changes or when the StatusNotifierHostRegistered signal is received.
+  Future<void> Function(bool)? onHostRegisteredChanged;
+
+  /// Returns whether a StatusNotifierHost is currently registered and running.
+  Future<bool> get isHostRegistered async {
+    if (_watcherRemoteObject == null) return false;
+    var result = await _watcherRemoteObject!.getProperty(
+      '${_getNamespace()}.StatusNotifierWatcher',
+      'IsStatusNotifierHostRegistered',
+    );
+    return result.asBoolean();
+  }
+
+  /// Returns the protocol version of the StatusNotifierWatcher.
+  Future<int> get protocolVersion async {
+    if (_watcherRemoteObject == null) return -1;
+    var result = await _watcherRemoteObject!.getProperty(
+      '${_getNamespace()}.StatusNotifierWatcher',
+      'ProtocolVersion',
+    );
+    return result.asInt32();
+  }
+
+  /// Returns the currently registered status notifier items.
+  Future<List<String>> get registeredStatusNotifierItems async {
+    if (_watcherRemoteObject == null) return [];
+    var result = await _watcherRemoteObject!.getProperty(
+      '${_getNamespace()}.StatusNotifierWatcher',
+      'RegisteredStatusNotifierItems',
+    );
+    return result.asStringArray().toList();
+  }
+
+  String _getNamespace() {
     switch (_backend) {
       case StatusNotifierItemBackend.spec:
-        namespace = 'org.freedesktop';
-        break;
+        return 'org.freedesktop';
       case StatusNotifierItemBackend.kde:
-        namespace = 'org.kde';
-        break;
+        return 'org.kde';
+      case StatusNotifierItemBackend.ayatana:
+        return 'org.ayatana';
     }
+  }
+
+  // Connect to D-Bus and register this notifier item.
+  Future<void> connect() async {
+    String namespace = _getNamespace();
 
     var name = '$namespace.StatusNotifierItem-$pid-1';
     var requestResult = await _bus.requestName(name);
     assert(requestResult == DBusRequestNameReply.primaryOwner);
+    _requestedName = name;
 
     // Register the menu.
     await _bus.registerObject(_menuObject);
 
     // Put the item on the bus.
     await _bus.registerObject(_notifierItemObject);
+
+    _watcherRemoteObject = DBusRemoteObject(_bus,
+        name: '$namespace.StatusNotifierWatcher',
+        path: DBusObjectPath('/StatusNotifierWatcher'));
 
     // Register the item.
     await _bus.callMethod(
@@ -341,30 +632,23 @@ class StatusNotifierItemClient {
         values: [DBusString(name)],
         replySignature: DBusSignature.empty);
 
+    // Listen for host registered signal
+    _hostRegisteredSubscription = DBusSignalStream(_bus,
+            sender: '$namespace.StatusNotifierWatcher',
+            path: DBusObjectPath('/StatusNotifierWatcher'),
+            interface: '$namespace.StatusNotifierWatcher',
+            name: 'StatusNotifierHostRegistered',
+            signature: DBusSignature.empty)
+        .listen((signal) {
+      onHostRegisteredChanged?.call(true);
+    });
+
     try {
-      var isHostRegistered = await DBusRemoteObject(_bus,
-              name: '$namespace.StatusNotifierWatcher',
-              path: DBusObjectPath('/StatusNotifierWatcher'))
-          .getProperty('$namespace.StatusNotifierWatcher',
-              'IsStatusNotifierHostRegistered');
-      _logger.info(
-          'IsStatusNotifierHostRegistered: ${isHostRegistered.asBoolean()}');
+      var hostReg = await isHostRegistered;
+      _logger.info('IsStatusNotifierHostRegistered: $hostReg');
     } catch (e) {
       _logger
           .warning('Failed to get IsStatusNotifierHostRegistered property: $e');
-    }
-
-    try {
-      var registeredItems = await DBusRemoteObject(_bus,
-              name: '$namespace.StatusNotifierWatcher',
-              path: DBusObjectPath('/StatusNotifierWatcher'))
-          .getProperty('$namespace.StatusNotifierWatcher',
-              'RegisteredStatusNotifierItems');
-      var items = registeredItems.asStringArray().join(', ');
-      _logger.info('RegisteredStatusNotifierItems: $items');
-    } catch (e) {
-      _logger
-          .warning('Failed to get RegisteredStatusNotifierItems property: $e');
     }
   }
 
@@ -373,8 +657,16 @@ class StatusNotifierItemClient {
     await _menuObject.update(menu);
   }
 
-  /// Terminates all active connections. If a client remains unclosed, the Dart process may not terminate.
+  /// Terminates all active connections and unregisters the item. If a client remains unclosed, the Dart process may not terminate.
   Future<void> close() async {
+    await _hostRegisteredSubscription?.cancel();
+    if (_requestedName != null) {
+      await _bus.releaseName(_requestedName!);
+      _requestedName = null;
+    }
+    await _bus.unregisterObject(_menuObject);
+    await _bus.unregisterObject(_notifierItemObject);
+
     if (_closeBus) {
       await _bus.close();
     }
