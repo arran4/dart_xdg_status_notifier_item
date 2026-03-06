@@ -797,12 +797,14 @@ class StatusNotifierItemClient {
         if (requireWatcher && namespaces.length == 1) {
           rethrow;
         }
-        _logger.warning('Failed to register status notifier item in $namespace: $e');
+        _logger.fine('Failed to register status notifier item in $namespace: $e');
       }
     }
 
     if (!anyRegistered && requireWatcher) {
       throw Exception('Failed to register status notifier item with any watcher.');
+    } else if (!anyRegistered) {
+      _logger.warning('Failed to register status notifier item with any watcher.');
     }
 
     try {
