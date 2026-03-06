@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:dart_xdg_status_notifier_item/dart_xdg_status_notifier_item.dart';
+import 'package:image/image.dart' as img;
+import 'package:logging/logging.dart';
 
 late StatusNotifierItemClient client;
 var itemClicked = false;
@@ -10,7 +13,10 @@ DBusMenuItem buildMenu() {
     children: [
       DBusMenuItem(
         label: itemClicked ? 'Clicked Item' : 'Item',
-        onClicked: () async => await handleClick(),
+        onClicked: () async {
+          print('Clicked on: ${itemClicked ? 'Clicked Item' : 'Item'}');
+          await handleClick();
+        },
       ),
       DBusMenuItem(label: 'Disabled Item', enabled: false),
       DBusMenuItem(label: 'Invisible Item', visible: false),
@@ -36,31 +42,50 @@ DBusMenuItem buildMenu() {
       DBusMenuItem.checkmark(
         'Checkmark',
         state: checkmarkIsActive,
-        onClicked: () async => await toggleCheckmark(),
+        onClicked: () async {
+          print('Toggled checkmark: ${!checkmarkIsActive}');
+          await toggleCheckmark();
+        },
       ),
       DBusMenuItem.separator(),
       DBusMenuItem.checkmark(
         'Radio 1',
         state: activeRadio == 1,
-        onClicked: () async => await setRadio(1),
+        onClicked: () async {
+          print('Selected Radio 1');
+          await setRadio(1);
+        },
       ),
       DBusMenuItem.checkmark(
         'Radio 2',
         state: activeRadio == 2,
-        onClicked: () async => await setRadio(2),
+        onClicked: () async {
+          print('Selected Radio 2');
+          await setRadio(2);
+        },
       ),
       DBusMenuItem.checkmark(
         'Radio 3',
         state: activeRadio == 3,
-        onClicked: () async => await setRadio(3),
+        onClicked: () async {
+          print('Selected Radio 3');
+          await setRadio(3);
+        },
       ),
       DBusMenuItem.separator(),
-      DBusMenuItem(label: 'Quit', onClicked: () async => await client.close()),
+      DBusMenuItem(
+        label: 'Quit',
+        onClicked: () async {
+          print('Quit clicked');
+          await client.close();
+        },
+      ),
     ],
   );
 }
 
 Future<void> rebuild() async {
+  print('Rebuilding menu...');
   await client.updateMenu(buildMenu());
 }
 
@@ -79,17 +104,85 @@ Future<void> setRadio(int active) async {
   await rebuild();
 }
 
+StatusNotifierIconPixmap? loadIconPixmap(String path) {
+  final file = File(path);
+  if (!file.existsSync()) {
+    print('Warning: Icon file not found at $path');
+    return null;
+  }
+  final image = img.decodeImage(file.readAsBytesSync());
+  if (image == null) {
+    print('Warning: Failed to decode icon at $path');
+    return null;
+  }
+  // The FreeDesktop spec expects ARGB (network byte order),
+  // which is often represented as ARGB in 32-bit integers.
+  return StatusNotifierIconPixmap(
+    width: image.width,
+    height: image.height,
+    pixels: image.getBytes(order: img.ChannelOrder.argb),
+  );
+}
+
 void main(List<String> args) async {
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.time}: ${record.message}');
+  });
+
+  print('Starting StatusNotifierItemClient example...');
+
   final requireWatcher = args.contains('--require-watcher');
   final enableGnomeExtensionCheck = !args.contains('--disable-gnome-check');
 
+  // Choose backend based on arguments, defaulting to KDE for testing
+  final backend = args.contains('--ayatana')
+      ? StatusNotifierItemBackend.ayatana
+      : args.contains('--spec')
+          ? StatusNotifierItemBackend.spec
+          : StatusNotifierItemBackend.kde;
+
+  print('Using backend: $backend');
+
+  final iconPixmap = loadIconPixmap('example/icon.png');
+  if (iconPixmap != null) {
+    print('Loaded icon from example/icon.png (${iconPixmap.width}x${iconPixmap.height})');
+  } else {
+    print('Proceeding without PNG icon pixmap.');
+  }
+
   client = StatusNotifierItemClient(
     id: 'dart-test',
+    backend: backend,
     iconName: 'computer-fail-symbolic',
+    iconPixmap: iconPixmap != null ? [iconPixmap] : const [],
     menu: buildMenu(),
+    onContextMenu: (x, y) async {
+      print('onContextMenu called at ($x, $y)');
+    },
+    onActivate: (x, y) async {
+      print('onActivate called at ($x, $y)');
+    },
+    onSecondaryActivate: (x, y) async {
+      print('onSecondaryActivate called at ($x, $y)');
+    },
+    onScroll: (delta, orientation) async {
+      print('onScroll called with delta $delta, orientation $orientation');
+    },
   );
-  await client.connect(
-    requireWatcher: requireWatcher,
-    enableGnomeExtensionCheck: enableGnomeExtensionCheck,
-  );
+
+  client.onHostRegisteredChanged = (registered) async {
+    print('Host registration changed. Is host registered? $registered');
+  };
+
+  print('Connecting to D-Bus...');
+  try {
+    await client.connect(
+      requireWatcher: requireWatcher,
+      enableGnomeExtensionCheck: enableGnomeExtensionCheck,
+    );
+    print('Connected successfully.');
+  } catch (e) {
+    print('Failed to connect: $e');
+  }
 }
