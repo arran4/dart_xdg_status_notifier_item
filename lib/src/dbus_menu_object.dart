@@ -84,11 +84,25 @@ class DBusMenuObject extends DBusObject {
   // The menu being exported over DBus.
   DBusMenuItem menu;
 
+  String _status = 'normal';
+
   final _items = <DBusMenuItem>[];
   final _idsByItem = <DBusMenuItem, int>{};
 
   DBusMenuObject(DBusObjectPath path, this.menu) : super(path) {
     _registerIds(menu);
+  }
+
+  /// Gets the current status of the menu.
+  String get status => _status;
+
+  /// Sets the status of the menu and emits a PropertiesChanged signal.
+  set status(String value) {
+    if (_status != value) {
+      _status = value;
+      emitPropertiesChanged('com.canonical.dbusmenu',
+          changedProperties: {'Status': DBusString(_status)});
+    }
   }
 
   /// Export an updated [menu]. This must have the same number and layout of items as the previous menu.
@@ -363,6 +377,37 @@ class DBusMenuObject extends DBusObject {
         ],
       ),
     ];
+  }
+
+  @override
+  Future<DBusMethodResponse> getAllProperties(String interface) async {
+    if (interface != 'com.canonical.dbusmenu') {
+      return DBusMethodErrorResponse.unknownProperty();
+    }
+    return DBusMethodSuccessResponse([
+      DBusDict.stringVariant({
+        'Status': DBusString(_status),
+        'Version': DBusUint32(3),
+        'TextDirection': DBusString('ltr'),
+      })
+    ]);
+  }
+
+  @override
+  Future<DBusMethodResponse> getProperty(String interface, String name) async {
+    if (interface != 'com.canonical.dbusmenu') {
+      return DBusMethodErrorResponse.unknownProperty();
+    }
+    switch (name) {
+      case 'Status':
+        return DBusGetPropertyResponse(DBusString(_status));
+      case 'Version':
+        return DBusGetPropertyResponse(DBusUint32(3));
+      case 'TextDirection':
+        return DBusGetPropertyResponse(DBusString('ltr'));
+      default:
+        return DBusMethodErrorResponse.unknownProperty();
+    }
   }
 
   @override

@@ -201,4 +201,23 @@ void main() {
       expect(resultOrientation, 'horizontal');
     });
   });
+
+  test('Update DBus Menu item Status properties and manage state dynamically', () async {
+    var client = StatusNotifierItemClient(
+        id: 'test',
+        menu: DBusMenuItem());
+
+    var object = client.menuObjectForTest;
+
+    var response = await object.getProperty('com.canonical.dbusmenu', 'Status');
+    expect(response, isA<DBusMethodSuccessResponse>());
+    expect((response as DBusMethodSuccessResponse).returnValues[0].asVariant().asString(), 'normal');
+
+    // Dynamically change menu status
+    client.menuStatus = 'notice';
+
+    response = await object.getProperty('com.canonical.dbusmenu', 'Status');
+    expect(response, isA<DBusMethodSuccessResponse>());
+    expect((response as DBusMethodSuccessResponse).returnValues[0].asVariant().asString(), 'notice');
+  });
 }
