@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:dart_xdg_status_notifier_item/xdg_status_notifier_item.dart';
+import 'package:dart_xdg_status_notifier_item/src/utils.dart';
+
 import 'package:test/test.dart';
 
 class MockNotifierWatcherObject extends DBusObject {
@@ -64,7 +66,7 @@ void main() {
       bus: DBusClient(clientAddress),
     );
     addTearDown(() async {
-      await client.close();
+
     });
     await client.connect();
   });
@@ -91,7 +93,7 @@ void main() {
       bus: DBusClient(clientAddress),
     );
     addTearDown(() async {
-      await client.close();
+
     });
     await client.connect();
   });
@@ -120,7 +122,7 @@ void main() {
       bus: DBusClient(clientAddress),
     );
     addTearDown(() async {
-      await client.close();
+
     });
     await client.connect();
 
@@ -274,4 +276,36 @@ void main() {
       );
     },
   );
+
+  test('Icon name and markup sanitization', () async {
+    var client = StatusNotifierItemClient(
+      id: 'test',
+      menu: DBusMenuItem(),
+    );
+
+    // Test icon name sanitization
+    client.iconName = 'test-icon-name\n\r';
+    expect(client.iconName, 'test-icon-name');
+
+    client.attentionIconName = 'test-attention\n';
+    expect(client.attentionIconName, 'test-attention');
+
+    // Test tool tip sanitization
+    client.toolTip = StatusNotifierToolTip(
+      iconName: 'tooltip-icon\n',
+      iconPixmap: [],
+      title: '<b>Bold Title</b>',
+      body: '<i>Italic Body</i>',
+    );
+    expect(client.toolTip?.iconName, 'tooltip-icon');
+
+    // Escaping test
+    var original = '<b>Bold</b> & "Quotes"';
+    expect(escapeMarkup(original), '&lt;b&gt;Bold&lt;/b&gt; &amp; &quot;Quotes&quot;');
+
+    // Strip test
+    expect(stripMarkup(original), 'Bold & "Quotes"');
+
+
+  });
 }

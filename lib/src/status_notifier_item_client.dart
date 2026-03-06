@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:dbus/dbus.dart';
 import 'package:logging/logging.dart';
+import 'utils.dart';
 
 import 'dbus_menu_object.dart';
 
@@ -77,11 +78,11 @@ class StatusNotifierToolTip {
   final String body;
 
   StatusNotifierToolTip({
-    required this.iconName,
+    required String iconName,
     required this.iconPixmap,
     required this.title,
     required this.body,
-  });
+  }) : iconName = sanitizeIconName(iconName);
 
   DBusStruct toDBusStruct() {
     return DBusStruct([
@@ -503,8 +504,9 @@ class StatusNotifierItemClient {
 
   /// Sets the iconName and emits a NewIcon signal.
   set iconName(String value) {
-    if (_notifierItemObject.iconName != value) {
-      _notifierItemObject.iconName = value;
+    var sanitizedValue = sanitizeIconName(value);
+    if (_notifierItemObject.iconName != sanitizedValue) {
+      _notifierItemObject.iconName = sanitizedValue;
       _notifierItemObject.emitNewIcon();
     }
   }
@@ -524,8 +526,9 @@ class StatusNotifierItemClient {
 
   /// Sets the overlayIconName and emits a NewOverlayIcon signal.
   set overlayIconName(String value) {
-    if (_notifierItemObject.overlayIconName != value) {
-      _notifierItemObject.overlayIconName = value;
+    var sanitizedValue = sanitizeIconName(value);
+    if (_notifierItemObject.overlayIconName != sanitizedValue) {
+      _notifierItemObject.overlayIconName = sanitizedValue;
       _notifierItemObject.emitNewOverlayIcon();
     }
   }
@@ -545,8 +548,9 @@ class StatusNotifierItemClient {
 
   /// Sets the attentionIconName and emits a NewAttentionIcon signal.
   set attentionIconName(String value) {
-    if (_notifierItemObject.attentionIconName != value) {
-      _notifierItemObject.attentionIconName = value;
+    var sanitizedValue = sanitizeIconName(value);
+    if (_notifierItemObject.attentionIconName != sanitizedValue) {
+      _notifierItemObject.attentionIconName = sanitizedValue;
       _notifierItemObject.emitNewAttentionIcon();
     }
   }
