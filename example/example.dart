@@ -140,17 +140,18 @@ void main(List<String> args) async {
   final backend = args.contains('--ayatana')
       ? StatusNotifierItemBackend.ayatana
       : args.contains('--kde')
-          ? StatusNotifierItemBackend.kde
-          : args.contains('--spec')
-              ? StatusNotifierItemBackend.spec
-              : StatusNotifierItemBackend.auto;
+      ? StatusNotifierItemBackend.kde
+      : args.contains('--spec')
+      ? StatusNotifierItemBackend.spec
+      : StatusNotifierItemBackend.auto;
 
   print('Using backend: $backend');
 
   final iconPixmap = loadIconPixmap('example/icon.png');
   if (iconPixmap != null) {
     print(
-        'Loaded icon from example/icon.png (${iconPixmap.width}x${iconPixmap.height})');
+      'Loaded icon from example/icon.png (${iconPixmap.width}x${iconPixmap.height})',
+    );
   } else {
     print('Proceeding without PNG icon pixmap.');
   }
@@ -181,9 +182,7 @@ void main(List<String> args) async {
 
   print('Connecting to D-Bus...');
   try {
-    await client.connect(
-      requireWatcher: requireWatcher,
-    );
+    await client.connect(requireWatcher: requireWatcher);
     print('Connected successfully.');
   } catch (e) {
     print('Failed to connect: $e');

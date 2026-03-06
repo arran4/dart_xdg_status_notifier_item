@@ -351,9 +351,7 @@ class _StatusNotifierItemObject extends DBusObject {
   }
 
   void emitNewStatus(StatusNotifierItemStatus newStatus) {
-    _emitSignal('NewStatus', [
-      DBusString(_encodeStatus(newStatus)),
-    ]);
+    _emitSignal('NewStatus', [DBusString(_encodeStatus(newStatus))]);
   }
 
   bool _isKnownInterface(String? interface) {
@@ -363,7 +361,59 @@ class _StatusNotifierItemObject extends DBusObject {
         interface == 'org.ayatana.appindicator.StatusNotifierItem';
   }
 
-  @override
+  Future<DBusMethodResponse> _handleContextMenu(
+    DBusMethodCall methodCall,
+  ) async {
+    if (methodCall.signature != DBusSignature('ii')) {
+      return DBusMethodErrorResponse.invalidArgs();
+    }
+    var x = methodCall.values[0].asInt32();
+    var y = methodCall.values[1].asInt32();
+    await onContextMenu?.call(x, y);
+    return DBusMethodSuccessResponse();
+  }
+
+  Future<DBusMethodResponse> _handleActivate(DBusMethodCall methodCall) async {
+    if (methodCall.signature != DBusSignature('ii')) {
+      return DBusMethodErrorResponse.invalidArgs();
+    }
+    var x = methodCall.values[0].asInt32();
+    var y = methodCall.values[1].asInt32();
+    await onActivate?.call(x, y);
+    return DBusMethodSuccessResponse();
+  }
+
+  Future<DBusMethodResponse> _handleSecondaryActivate(
+    DBusMethodCall methodCall,
+  ) async {
+    if (methodCall.signature != DBusSignature('ii')) {
+      return DBusMethodErrorResponse.invalidArgs();
+    }
+    var x = methodCall.values[0].asInt32();
+    var y = methodCall.values[1].asInt32();
+    await onSecondaryActivate?.call(x, y);
+    return DBusMethodSuccessResponse();
+  }
+
+  Future<DBusMethodResponse> _handleScroll(DBusMethodCall methodCall) async {
+    if (methodCall.signature != DBusSignature('is')) {
+      return DBusMethodErrorResponse.invalidArgs();
+    }
+    var delta = methodCall.values[0].asInt32();
+    var orientation = methodCall.values[1].asString();
+    await onScroll?.call(delta, orientation);
+    return DBusMethodSuccessResponse();
+  }
+
+  Future<DBusMethodResponse> _handleProvideXdgActivationToken(
+    DBusMethodCall methodCall,
+  ) async {
+    if (methodCall.signature != DBusSignature('s')) {
+      return DBusMethodErrorResponse.invalidArgs();
+    }
+    return DBusMethodSuccessResponse();
+  }
+
   @override
   Future<DBusMethodResponse> handleMethodCall(DBusMethodCall methodCall) async {
     if (!_isKnownInterface(methodCall.interface)) {
@@ -372,79 +422,53 @@ class _StatusNotifierItemObject extends DBusObject {
 
     switch (methodCall.name) {
       case 'ContextMenu':
-        if (methodCall.signature != DBusSignature('ii')) {
-          return DBusMethodErrorResponse.invalidArgs();
-        }
-        var x = methodCall.values[0].asInt32();
-        var y = methodCall.values[1].asInt32();
-        await onContextMenu?.call(x, y);
-        return DBusMethodSuccessResponse();
+        return _handleContextMenu(methodCall);
       case 'Activate':
-        if (methodCall.signature != DBusSignature('ii')) {
-          return DBusMethodErrorResponse.invalidArgs();
-        }
-        var x = methodCall.values[0].asInt32();
-        var y = methodCall.values[1].asInt32();
-        await onActivate?.call(x, y);
-        return DBusMethodSuccessResponse();
+        return _handleActivate(methodCall);
       case 'SecondaryActivate':
-        if (methodCall.signature != DBusSignature('ii')) {
-          return DBusMethodErrorResponse.invalidArgs();
-        }
-        var x = methodCall.values[0].asInt32();
-        var y = methodCall.values[1].asInt32();
-        await onSecondaryActivate?.call(x, y);
-        return DBusMethodSuccessResponse();
+        return _handleSecondaryActivate(methodCall);
       case 'Scroll':
-        if (methodCall.signature != DBusSignature('is')) {
-          return DBusMethodErrorResponse.invalidArgs();
-        }
-        var delta = methodCall.values[0].asInt32();
-        var orientation = methodCall.values[1].asString();
-        await onScroll?.call(delta, orientation);
-        return DBusMethodSuccessResponse();
+        return _handleScroll(methodCall);
       case 'ProvideXdgActivationToken':
-        if (methodCall.signature != DBusSignature('s')) {
-          return DBusMethodErrorResponse.invalidArgs();
-        }
-        return DBusMethodSuccessResponse();
+        return _handleProvideXdgActivationToken(methodCall);
       default:
         return DBusMethodErrorResponse.unknownMethod();
     }
   }
 
   Map<String, DBusValue> get _properties => {
-        'Category': DBusString(_encodeCategory(category)),
-        'Id': DBusString(id),
-        'Title': DBusString(title),
-        'Status': DBusString(_encodeStatus(status)),
-        'WindowId': DBusInt32(windowId),
-        'IconName': DBusString(iconName),
-        'IconPixmap': DBusArray(
-          DBusSignature('(iiay)'),
-          iconPixmap.map((e) => e.toDBusStruct()),
-        ),
-        'OverlayIconName': DBusString(overlayIconName),
-        'OverlayIconPixmap': DBusArray(
-          DBusSignature('(iiay)'),
-          overlayIconPixmap.map((e) => e.toDBusStruct()),
-        ),
-        'AttentionIconName': DBusString(attentionIconName),
-        'AttentionIconPixmap': DBusArray(
-          DBusSignature('(iiay)'),
-          attentionIconPixmap.map((e) => e.toDBusStruct()),
-        ),
-        'AttentionMovieName': DBusString(attentionMovieName),
-        'ToolTip': toolTip?.toDBusStruct() ??
-            DBusStruct([
-              DBusString(''),
-              DBusArray(DBusSignature('(iiay)'), []),
-              DBusString(''),
-              DBusString(''),
-            ]),
-        'ItemIsMenu': DBusBoolean(itemIsMenu),
-        'Menu': menu,
-      };
+    'Category': DBusString(_encodeCategory(category)),
+    'Id': DBusString(id),
+    'Title': DBusString(title),
+    'Status': DBusString(_encodeStatus(status)),
+    'WindowId': DBusInt32(windowId),
+    'IconName': DBusString(iconName),
+    'IconPixmap': DBusArray(
+      DBusSignature('(iiay)'),
+      iconPixmap.map((e) => e.toDBusStruct()),
+    ),
+    'OverlayIconName': DBusString(overlayIconName),
+    'OverlayIconPixmap': DBusArray(
+      DBusSignature('(iiay)'),
+      overlayIconPixmap.map((e) => e.toDBusStruct()),
+    ),
+    'AttentionIconName': DBusString(attentionIconName),
+    'AttentionIconPixmap': DBusArray(
+      DBusSignature('(iiay)'),
+      attentionIconPixmap.map((e) => e.toDBusStruct()),
+    ),
+    'AttentionMovieName': DBusString(attentionMovieName),
+    'ToolTip':
+        toolTip?.toDBusStruct() ??
+        DBusStruct([
+          DBusString(''),
+          DBusArray(DBusSignature('(iiay)'), []),
+          DBusString(''),
+          DBusString(''),
+        ]),
+    'ItemIsMenu': DBusBoolean(itemIsMenu),
+    'Menu': menu,
+  };
 
   @override
   Future<DBusMethodResponse> getProperty(String interface, String name) async {
@@ -635,9 +659,9 @@ class StatusNotifierItemClient {
     Future<void> Function(int x, int y)? onSecondaryActivate,
     Future<void> Function(int delta, String orientation)? onScroll,
     DBusClient? bus,
-  })  : _backend = backend,
-        _bus = bus ?? DBusClient.session(),
-        _closeBus = bus == null {
+  }) : _backend = backend,
+       _bus = bus ?? DBusClient.session(),
+       _closeBus = bus == null {
     _menuObject = DBusMenuObject(DBusObjectPath('/Menu'), menu);
     _notifierItemObject = _StatusNotifierItemObject(
       id: id,
@@ -675,7 +699,8 @@ class StatusNotifierItemClient {
 
   /// Returns whether a StatusNotifierHost is currently registered and running.
   Future<bool> get isHostRegistered async {
-    if (_watcherRemoteObject == null || _resolvedNamespace == null) return false;
+    if (_watcherRemoteObject == null || _resolvedNamespace == null)
+      return false;
     var result = await _watcherRemoteObject!.getProperty(
       '$_resolvedNamespace.StatusNotifierWatcher',
       'IsStatusNotifierHostRegistered',
@@ -706,7 +731,10 @@ class StatusNotifierItemClient {
   List<String> _getNamespaces() {
     switch (_backend) {
       case StatusNotifierItemBackend.auto:
-        return ['org.kde', 'org.freedesktop']; // Exclude ayatana as a watcher backend standard
+        return [
+          'org.kde',
+          'org.freedesktop',
+        ]; // Exclude ayatana as a watcher backend standard
       case StatusNotifierItemBackend.spec:
         return ['org.freedesktop'];
       case StatusNotifierItemBackend.kde:
@@ -733,9 +761,7 @@ class StatusNotifierItemClient {
   }
 
   // Connect to D-Bus and register this notifier item.
-  Future<void> connect({
-    bool requireWatcher = false,
-  }) async {
+  Future<void> connect({bool requireWatcher = false}) async {
     var namespaces = _getNamespaces();
     String? targetNamespace;
 
@@ -784,16 +810,17 @@ class StatusNotifierItemClient {
       );
 
       // Listen for host registered signal
-      _hostRegisteredSubscription = DBusSignalStream(
-        _bus,
-        sender: '$targetNamespace.StatusNotifierWatcher',
-        path: DBusObjectPath('/StatusNotifierWatcher'),
-        interface: '$targetNamespace.StatusNotifierWatcher',
-        name: 'StatusNotifierHostRegistered',
-        signature: DBusSignature.empty,
-      ).listen((signal) {
-        onHostRegisteredChanged?.call(true);
-      });
+      _hostRegisteredSubscription =
+          DBusSignalStream(
+            _bus,
+            sender: '$targetNamespace.StatusNotifierWatcher',
+            path: DBusObjectPath('/StatusNotifierWatcher'),
+            interface: '$targetNamespace.StatusNotifierWatcher',
+            name: 'StatusNotifierHostRegistered',
+            signature: DBusSignature.empty,
+          ).listen((signal) {
+            onHostRegisteredChanged?.call(true);
+          });
 
       _logger.info('Resolved StatusNotifier backend: $targetNamespace');
     } catch (e) {
@@ -802,8 +829,11 @@ class StatusNotifierItemClient {
       }
 
       // Attempt fallback if auto and the first attempt failed despite probe
-      if (_backend == StatusNotifierItemBackend.auto && targetNamespace == 'org.kde') {
-        _logger.fine('Registration failed for org.kde, attempting fallback to org.freedesktop');
+      if (_backend == StatusNotifierItemBackend.auto &&
+          targetNamespace == 'org.kde') {
+        _logger.fine(
+          'Registration failed for org.kde, attempting fallback to org.freedesktop',
+        );
         targetNamespace = 'org.freedesktop';
         _resolvedNamespace = targetNamespace;
 
@@ -827,23 +857,28 @@ class StatusNotifierItemClient {
             replySignature: DBusSignature.empty,
           );
 
-          _hostRegisteredSubscription = DBusSignalStream(
-            _bus,
-            sender: '$targetNamespace.StatusNotifierWatcher',
-            path: DBusObjectPath('/StatusNotifierWatcher'),
-            interface: '$targetNamespace.StatusNotifierWatcher',
-            name: 'StatusNotifierHostRegistered',
-            signature: DBusSignature.empty,
-          ).listen((signal) {
-            onHostRegisteredChanged?.call(true);
-          });
+          _hostRegisteredSubscription =
+              DBusSignalStream(
+                _bus,
+                sender: '$targetNamespace.StatusNotifierWatcher',
+                path: DBusObjectPath('/StatusNotifierWatcher'),
+                interface: '$targetNamespace.StatusNotifierWatcher',
+                name: 'StatusNotifierHostRegistered',
+                signature: DBusSignature.empty,
+              ).listen((signal) {
+                onHostRegisteredChanged?.call(true);
+              });
 
-          _logger.info('Resolved StatusNotifier backend: $targetNamespace (fallback)');
+          _logger.info(
+            'Resolved StatusNotifier backend: $targetNamespace (fallback)',
+          );
         } catch (fallbackError) {
-          _logger.warning('Failed to register status notifier item with any watcher.');
+          _logger.warning(
+            'Failed to register status notifier item with any watcher.',
+          );
         }
       } else {
-         _logger.warning('Failed to register status notifier item: $e');
+        _logger.warning('Failed to register status notifier item: $e');
       }
     }
 
