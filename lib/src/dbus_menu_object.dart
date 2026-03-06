@@ -10,6 +10,7 @@ class DBusMenuItem {
   final String? label;
   final String? iconName;
   final Uint8List? iconData;
+  final DBusMenuStatus? status;
   final int? toggleState;
   final String? toggleType;
   final List<DBusMenuItem> children;
@@ -34,6 +35,7 @@ class DBusMenuItem {
     this.label,
     this.iconName,
     this.iconData,
+    this.status,
     this.toggleState,
     this.toggleType,
     this.children = const [],
@@ -78,6 +80,24 @@ class DBusMenuItem {
          toggleState: state ? 1 : 0,
          onClicked: onClicked,
        );
+}
+
+/// The status of a menu item.
+enum DBusMenuStatus {
+  /// The item is normal.
+  normal,
+
+  /// The item is notice.
+  notice
+}
+
+String _encodeDBusMenuStatus(DBusMenuStatus status) {
+  switch (status) {
+    case DBusMenuStatus.normal:
+      return 'normal';
+    case DBusMenuStatus.notice:
+      return 'notice';
+  }
 }
 
 class DBusMenuObject extends DBusObject {
@@ -563,6 +583,9 @@ class DBusMenuObject extends DBusObject {
     }
     if (item.iconData != null) {
       properties['icon-data'] = DBusArray.byte(item.iconData!);
+    }
+    if (item.status != null) {
+      properties['status'] = DBusString(_encodeDBusMenuStatus(item.status!));
     }
     if (item.toggleType != null) {
       properties['toggle-type'] = DBusString(item.toggleType!);

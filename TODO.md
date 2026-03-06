@@ -48,9 +48,9 @@ This document lists the shortcomings and features that are not yet implemented o
 
 ## Internal / Housekeeping
 - [x] Make `Status` an enum mapped properly in client state updates.
-- [ ] Update DBus Menu item `Status` properties and manage state dynamically.
-- [ ] Add tests for property changes and signal emissions once implemented.
+- [x] Update DBus Menu item `Status` properties and manage state dynamically.
+- [x] Add tests for property changes and signal emissions once implemented.
 
 ## Documentation
-- [ ] Add update documentation and an EXTENSIVE `README.md` with samples showing the full extent of additions.
-- [ ] Ensure the `README.md` covers everything that is in `dart_libayatana_appindicator`.
+- [x] Add update documentation and an EXTENSIVE `README.md` with samples showing the full extent of additions.
+- [x] Ensure the `README.md` covers everything that is in `dart_libayatana_appindicator`.
