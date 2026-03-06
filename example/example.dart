@@ -133,6 +133,7 @@ void main(List<String> args) async {
   print('Starting StatusNotifierItemClient example...');
 
   final requireWatcher = args.contains('--require-watcher');
+  final iconByName = args.contains('--icon-by-name');
   final enableGnomeExtensionCheck = !args.contains('--disable-gnome-check');
 
   // Choose backend based on arguments, defaulting to KDE for testing
@@ -155,8 +156,8 @@ void main(List<String> args) async {
   client = StatusNotifierItemClient(
     id: 'dart-test',
     backend: backend,
-    iconName: 'computer-fail-symbolic',
-    iconPixmap: iconPixmap != null ? [iconPixmap] : const [],
+    iconName: iconByName ? 'computer-fail-symbolic' : '',
+    iconPixmap: (!iconByName) && iconPixmap != null ? [iconPixmap] : const [],
     menu: buildMenu(),
     onContextMenu: (x, y) async {
       print('onContextMenu called at ($x, $y)');
