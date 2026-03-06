@@ -685,7 +685,10 @@ class StatusNotifierItemClient {
   }
 
   // Connect to D-Bus and register this notifier item.
-  Future<void> connect() async {
+  Future<void> connect({
+    bool requireWatcher = false,
+    bool enableGnomeExtensionCheck = true,
+  }) async {
     String namespace = _getNamespace();
 
     var name = '$namespace.StatusNotifierItem-$pid-1';
@@ -705,27 +708,63 @@ class StatusNotifierItemClient {
       path: DBusObjectPath('/StatusNotifierWatcher'),
     );
 
-    // Register the item.
-    await _bus.callMethod(
-      destination: '$namespace.StatusNotifierWatcher',
-      path: DBusObjectPath('/StatusNotifierWatcher'),
-      interface: '$namespace.StatusNotifierWatcher',
-      name: 'RegisterStatusNotifierItem',
-      values: [DBusString(name)],
-      replySignature: DBusSignature.empty,
-    );
+    try {
+      // Register the item.
+      await _bus.callMethod(
+        destination: '$namespace.StatusNotifierWatcher',
+        path: DBusObjectPath('/StatusNotifierWatcher'),
+        interface: '$namespace.StatusNotifierWatcher',
+        name: 'RegisterStatusNotifierItem',
+        values: [DBusString(name)],
+        replySignature: DBusSignature.empty,
+      );
 
-    // Listen for host registered signal
-    _hostRegisteredSubscription = DBusSignalStream(
-      _bus,
-      sender: '$namespace.StatusNotifierWatcher',
-      path: DBusObjectPath('/StatusNotifierWatcher'),
-      interface: '$namespace.StatusNotifierWatcher',
-      name: 'StatusNotifierHostRegistered',
-      signature: DBusSignature.empty,
-    ).listen((signal) {
-      onHostRegisteredChanged?.call(true);
-    });
+      // Listen for host registered signal
+      _hostRegisteredSubscription = DBusSignalStream(
+        _bus,
+        sender: '$namespace.StatusNotifierWatcher',
+        path: DBusObjectPath('/StatusNotifierWatcher'),
+        interface: '$namespace.StatusNotifierWatcher',
+        name: 'StatusNotifierHostRegistered',
+        signature: DBusSignature.empty,
+      ).listen((signal) {
+        onHostRegisteredChanged?.call(true);
+      });
+    } catch (e) {
+      if (requireWatcher) {
+        rethrow;
+      }
+      _logger.warning('Failed to register status notifier item: $e');
+
+      if (enableGnomeExtensionCheck) {
+        var desktop =
+            Platform.environment['XDG_CURRENT_DESKTOP']?.toLowerCase();
+        if (desktop != null && desktop.contains('gnome')) {
+          try {
+            var result =
+                await Process.run('gnome-extensions', ['list', '--enabled']);
+            if (result.exitCode == 0) {
+              var out = result.stdout.toString().toLowerCase();
+              if (!out.contains('appindicatorsupport') &&
+                  !out.contains('ubuntu-appindicators')) {
+                _logger.warning(
+                  'GNOME desktop detected without an active AppIndicator extension. '
+                  'Status icons may not be displayed. Consider installing '
+                  '"AppIndicator and KStatusNotifierItem Support".',
+                );
+              }
+            }
+          } catch (_) {
+            _logger.warning(
+              'GNOME desktop detected. The StatusNotifierWatcher service is not '
+              'available. You may need to install an AppIndicator extension '
+              '(e.g., "AppIndicator and KStatusNotifierItem Support") to display '
+              'status icons.',
+            );
+          }
+        }
+      }
+    }
 
     try {
       var hostReg = await isHostRegistered;
