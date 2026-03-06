@@ -23,7 +23,7 @@ on:
         type: choice
         options:
           - validate
-          - lint-fix
+          - format-and-pr
           - build
           - release-snapshot
           - release
@@ -152,10 +152,26 @@ jobs:
       - uses: dart-lang/setup-dart@v1
       - run: dart --version
       - run: dart pub get
-      - run: dart format --set-exit-if-changed .
+      - name: Format Check
+        if: github.event_name != 'workflow_dispatch' || inputs.mode != 'format-and-pr'
+        run: dart format --set-exit-if-changed .
+      - name: Format and Fix
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'format-and-pr'
+        run: |
+          dart fix --apply
+          dart format .
+      - name: Create Pull Request
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'format-and-pr'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: apply format and lint fixes"
+          title: "chore: format and lint fixes"
+          body: "Automated format and lint fixes created by CI pipeline."
+          branch: "chore/format-and-lint-fixes"
+          delete-branch: true
 
-  dart-analyze-test:
-    name: Dart analyze/test
+  dart-analyze:
+    name: Dart analyze
     needs: [route, discover]
     if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) && needs.discover.outputs.has_dart == 'true' && needs.route.outputs.run_code_checks == 'true' }}
     runs-on: ubuntu-latest
@@ -165,11 +181,22 @@ jobs:
       - run: dart --version
       - run: dart pub get
       - run: dart analyze
+
+  dart-test:
+    name: Dart test
+    needs: [route, discover]
+    if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) && needs.discover.outputs.has_dart == 'true' && needs.route.outputs.run_code_checks == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - run: dart --version
+      - run: dart pub get
       - run: dart test
 
   dart-release-prep:
     name: Dart release prep
-    needs: [route, discover, dart-format, dart-analyze-test]
+    needs: [route, discover, dart-format, dart-analyze, dart-test]
     if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) && github.event_name == 'workflow_dispatch' && (inputs.mode == 'release' || inputs.mode == 'release-snapshot') && needs.discover.outputs.has_dart == 'true' }}
     runs-on: ubuntu-latest
     steps:
@@ -214,7 +241,7 @@ jobs:
 
   publish-dart:
     name: Publish Dart Package to pub.dev
-    needs: [route, discover, dart-format, dart-analyze-test, dart-release-prep]
+    needs: [route, discover, dart-format, dart-analyze, dart-test, dart-release-prep]
     if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) && needs.route.outputs.run_release == 'true' && needs.discover.outputs.has_dart == 'true' }}
     runs-on: ubuntu-latest
     steps:
