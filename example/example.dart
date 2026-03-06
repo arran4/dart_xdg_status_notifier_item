@@ -79,11 +79,13 @@ Future<void> setRadio(int active) async {
   await rebuild();
 }
 
-void main() async {
+void main(List<String> args) async {
+  final requireWatcher = args.contains('--require-watcher');
+
   client = StatusNotifierItemClient(
     id: 'dart-test',
     iconName: 'computer-fail-symbolic',
     menu: buildMenu(),
   );
-  await client.connect();
+  await client.connect(requireWatcher: requireWatcher);
 }

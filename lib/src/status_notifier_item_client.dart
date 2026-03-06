@@ -681,7 +681,7 @@ class StatusNotifierItemClient {
   }
 
   // Connect to D-Bus and register this notifier item.
-  Future<void> connect() async {
+  Future<void> connect({bool requireWatcher = false}) async {
     String namespace = _getNamespace();
 
     var name = '$namespace.StatusNotifierItem-$pid-1';
@@ -701,27 +701,34 @@ class StatusNotifierItemClient {
       path: DBusObjectPath('/StatusNotifierWatcher'),
     );
 
-    // Register the item.
-    await _bus.callMethod(
-      destination: '$namespace.StatusNotifierWatcher',
-      path: DBusObjectPath('/StatusNotifierWatcher'),
-      interface: '$namespace.StatusNotifierWatcher',
-      name: 'RegisterStatusNotifierItem',
-      values: [DBusString(name)],
-      replySignature: DBusSignature.empty,
-    );
+    try {
+      // Register the item.
+      await _bus.callMethod(
+        destination: '$namespace.StatusNotifierWatcher',
+        path: DBusObjectPath('/StatusNotifierWatcher'),
+        interface: '$namespace.StatusNotifierWatcher',
+        name: 'RegisterStatusNotifierItem',
+        values: [DBusString(name)],
+        replySignature: DBusSignature.empty,
+      );
 
-    // Listen for host registered signal
-    _hostRegisteredSubscription = DBusSignalStream(
-      _bus,
-      sender: '$namespace.StatusNotifierWatcher',
-      path: DBusObjectPath('/StatusNotifierWatcher'),
-      interface: '$namespace.StatusNotifierWatcher',
-      name: 'StatusNotifierHostRegistered',
-      signature: DBusSignature.empty,
-    ).listen((signal) {
-      onHostRegisteredChanged?.call(true);
-    });
+      // Listen for host registered signal
+      _hostRegisteredSubscription = DBusSignalStream(
+        _bus,
+        sender: '$namespace.StatusNotifierWatcher',
+        path: DBusObjectPath('/StatusNotifierWatcher'),
+        interface: '$namespace.StatusNotifierWatcher',
+        name: 'StatusNotifierHostRegistered',
+        signature: DBusSignature.empty,
+      ).listen((signal) {
+        onHostRegisteredChanged?.call(true);
+      });
+    } catch (e) {
+      if (requireWatcher) {
+        rethrow;
+      }
+      _logger.warning('Failed to register status notifier item: $e');
+    }
 
     try {
       var hostReg = await isHostRegistered;
