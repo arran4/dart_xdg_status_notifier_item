@@ -8,7 +8,7 @@ class MockNotifierWatcherObject extends DBusObject {
   final String namespace;
 
   MockNotifierWatcherObject(this.namespace)
-    : super(DBusObjectPath('/StatusNotifierWatcher'));
+      : super(DBusObjectPath('/StatusNotifierWatcher'));
 
   @override
   Future<DBusMethodResponse> handleMethodCall(DBusMethodCall methodCall) async {
@@ -31,7 +31,7 @@ class MockNotifierWatcherServer extends DBusClient {
   final String namespace;
 
   MockNotifierWatcherServer(DBusAddress clientAddress, this.namespace)
-    : super(clientAddress) {
+      : super(clientAddress) {
     _root = MockNotifierWatcherObject(namespace);
   }
 
@@ -134,7 +134,6 @@ void main() {
     expect(client.title, 'new test');
   });
 
-  
   group('StatusNotifierItemClient actions', () {
     test('ContextMenu correctly parses coordinates', () async {
       int? resultX;
@@ -254,7 +253,8 @@ void main() {
       );
       expect(response, isA<DBusMethodSuccessResponse>());
       expect(
-        (response as DBusMethodSuccessResponse).returnValues[0]
+        (response as DBusMethodSuccessResponse)
+            .returnValues[0]
             .asVariant()
             .asString(),
         'normal',
@@ -266,7 +266,8 @@ void main() {
       response = await object.getProperty('com.canonical.dbusmenu', 'Status');
       expect(response, isA<DBusMethodSuccessResponse>());
       expect(
-        (response as DBusMethodSuccessResponse).returnValues[0]
+        (response as DBusMethodSuccessResponse)
+            .returnValues[0]
             .asVariant()
             .asString(),
         'notice',
