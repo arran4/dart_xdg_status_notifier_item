@@ -134,6 +134,7 @@ void main() {
     expect(client.title, 'new test');
   });
 
+  
   group('StatusNotifierItemClient actions', () {
     test('ContextMenu correctly parses coordinates', () async {
       int? resultX;
