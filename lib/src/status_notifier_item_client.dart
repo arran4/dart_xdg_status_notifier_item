@@ -681,7 +681,10 @@ class StatusNotifierItemClient {
   }
 
   // Connect to D-Bus and register this notifier item.
-  Future<void> connect({bool requireWatcher = false}) async {
+  Future<void> connect({
+    bool requireWatcher = false,
+    bool enableGnomeExtensionCheck = true,
+  }) async {
     String namespace = _getNamespace();
 
     var name = '$namespace.StatusNotifierItem-$pid-1';
@@ -728,6 +731,35 @@ class StatusNotifierItemClient {
         rethrow;
       }
       _logger.warning('Failed to register status notifier item: $e');
+
+      if (enableGnomeExtensionCheck) {
+        var desktop =
+            Platform.environment['XDG_CURRENT_DESKTOP']?.toLowerCase();
+        if (desktop != null && desktop.contains('gnome')) {
+          try {
+            var result =
+                await Process.run('gnome-extensions', ['list', '--enabled']);
+            if (result.exitCode == 0) {
+              var out = result.stdout.toString().toLowerCase();
+              if (!out.contains('appindicatorsupport') &&
+                  !out.contains('ubuntu-appindicators')) {
+                _logger.warning(
+                  'GNOME desktop detected without an active AppIndicator extension. '
+                  'Status icons may not be displayed. Consider installing '
+                  '"AppIndicator and KStatusNotifierItem Support".',
+                );
+              }
+            }
+          } catch (_) {
+            _logger.warning(
+              'GNOME desktop detected. The StatusNotifierWatcher service is not '
+              'available. You may need to install an AppIndicator extension '
+              '(e.g., "AppIndicator and KStatusNotifierItem Support") to display '
+              'status icons.',
+            );
+          }
+        }
+      }
     }
 
     try {
