@@ -138,9 +138,9 @@ void main(List<String> args) async {
   // Choose backend based on arguments, defaulting to KDE for testing
   final backend = args.contains('--ayatana')
       ? StatusNotifierItemBackend.ayatana
-      : args.contains('--spec')
-          ? StatusNotifierItemBackend.spec
-          : StatusNotifierItemBackend.kde;
+      : args.contains('--kde')
+          ? StatusNotifierItemBackend.kde
+          : StatusNotifierItemBackend.spec;
 
   print('Using backend: $backend');
 
@@ -176,12 +176,11 @@ void main(List<String> args) async {
   };
 
   print('Connecting to D-Bus...');
-  try {
-    await client.connect(
-      requireWatcher: requireWatcher,
-      enableGnomeExtensionCheck: enableGnomeExtensionCheck,
-    );
-    print('Connected successfully.');
+  try {  await client.connect(
+    requireWatcher: requireWatcher,
+    enableGnomeExtensionCheck: enableGnomeExtensionCheck,
+
+  );print('Connected successfully.');
   } catch (e) {
     print('Failed to connect: $e');
   }
