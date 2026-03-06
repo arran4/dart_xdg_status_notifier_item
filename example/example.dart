@@ -133,6 +133,8 @@ void main(List<String> args) async {
   print('Starting StatusNotifierItemClient example...');
 
   final requireWatcher = args.contains('--require-watcher');
+  final iconByName = args.contains('--icon-by-name');
+  final enableGnomeExtensionCheck = !args.contains('--disable-gnome-check');
 
   // Choose backend based on arguments
   final backend = args.contains('--ayatana')
@@ -147,7 +149,8 @@ void main(List<String> args) async {
 
   final iconPixmap = loadIconPixmap('example/icon.png');
   if (iconPixmap != null) {
-    print('Loaded icon from example/icon.png (${iconPixmap.width}x${iconPixmap.height})');
+    print(
+        'Loaded icon from example/icon.png (${iconPixmap.width}x${iconPixmap.height})');
   } else {
     print('Proceeding without PNG icon pixmap.');
   }
@@ -155,8 +158,8 @@ void main(List<String> args) async {
   client = StatusNotifierItemClient(
     id: 'dart-test',
     backend: backend,
-    iconName: 'computer-fail-symbolic',
-    iconPixmap: iconPixmap != null ? [iconPixmap] : const [],
+    iconName: iconByName ? 'computer-fail-symbolic' : '',
+    iconPixmap: (!iconByName) && iconPixmap != null ? [iconPixmap] : const [],
     menu: buildMenu(),
     onContextMenu: (x, y) async {
       print('onContextMenu called at ($x, $y)');
@@ -178,7 +181,9 @@ void main(List<String> args) async {
 
   print('Connecting to D-Bus...');
   try {
-    await client.connect(requireWatcher: requireWatcher);
+    await client.connect(
+      requireWatcher: requireWatcher,
+    );
     print('Connected successfully.');
   } catch (e) {
     print('Failed to connect: $e');
