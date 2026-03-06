@@ -97,6 +97,9 @@ void main(List<String> args) async {
         case 'spec':
           backend = StatusNotifierItemBackend.spec;
           break;
+        case 'auto':
+          backend = StatusNotifierItemBackend.auto;
+          break;
         default:
           print('Unknown backend: $value');
       }

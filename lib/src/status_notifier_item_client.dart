@@ -9,6 +9,9 @@ import 'dbus_menu_object.dart';
 
 /// Backend for the status notifier item.
 enum StatusNotifierItemBackend {
+  /// Automatically determine the best backend based on the environment.
+  auto,
+
   /// The standard FreeDesktop specification (org.freedesktop).
   spec,
 
@@ -676,6 +679,8 @@ class StatusNotifierItemClient {
   String _getNamespace() {
     switch (_backend) {
       case StatusNotifierItemBackend.spec:
+      case StatusNotifierItemBackend
+          .auto: // Fallback to spec for auto if not fully implemented dynamically yet
         return 'org.freedesktop';
       case StatusNotifierItemBackend.kde:
         return 'org.kde';
