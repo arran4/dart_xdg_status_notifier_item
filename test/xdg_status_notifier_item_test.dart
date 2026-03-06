@@ -8,7 +8,7 @@ class MockNotifierWatcherObject extends DBusObject {
   final String namespace;
 
   MockNotifierWatcherObject(this.namespace)
-    : super(DBusObjectPath('/StatusNotifierWatcher'));
+      : super(DBusObjectPath('/StatusNotifierWatcher'));
 
   @override
   Future<DBusMethodResponse> handleMethodCall(DBusMethodCall methodCall) async {
@@ -31,7 +31,7 @@ class MockNotifierWatcherServer extends DBusClient {
   final String namespace;
 
   MockNotifierWatcherServer(DBusAddress clientAddress, this.namespace)
-    : super(clientAddress) {
+      : super(clientAddress) {
     _root = MockNotifierWatcherObject(namespace);
   }
 
@@ -50,12 +50,14 @@ void main() {
     addTearDown(() async {
       await server.close();
     });
+    ;
 
     var watcher = MockNotifierWatcherServer(clientAddress, 'org.freedesktop');
     await watcher.start();
     addTearDown(() async {
       await watcher.close();
     });
+    ;
 
     var client = StatusNotifierItemClient(
       id: 'test',
@@ -66,8 +68,10 @@ void main() {
     addTearDown(() async {
       await client.close();
     });
+    ;
     await client.connect();
   });
+  ;
 
   test('connect (kde backend)', () async {
     var server = DBusServer();
@@ -77,12 +81,14 @@ void main() {
     addTearDown(() async {
       await server.close();
     });
+    ;
 
     var watcher = MockNotifierWatcherServer(clientAddress, 'org.kde');
     await watcher.start();
     addTearDown(() async {
       await watcher.close();
     });
+    ;
 
     var client = StatusNotifierItemClient(
       id: 'test',
@@ -93,8 +99,10 @@ void main() {
     addTearDown(() async {
       await client.close();
     });
+    ;
     await client.connect();
   });
+  ;
 
   test('property changes', () async {
     var server = DBusServer();
@@ -103,12 +111,14 @@ void main() {
     addTearDown(() async {
       await server.close();
     });
+    ;
 
     var watcher = MockNotifierWatcherServer(clientAddress, 'org.freedesktop');
     await watcher.start();
     addTearDown(() async {
       await watcher.close();
     });
+    ;
 
     var client = StatusNotifierItemClient(
         id: 'test',
@@ -123,6 +133,7 @@ void main() {
     addTearDown(() async {
       await client.close();
     });
+    ;
     await client.connect();
 
     expect(client.status, StatusNotifierItemStatus.active);
@@ -133,8 +144,8 @@ void main() {
     expect(client.title, 'test');
     client.title = 'new test';
     expect(client.title, 'new test');
-  })
-  
+  });
+
   group('StatusNotifierItemClient actions', () {
     test('ContextMenu correctly parses coordinates', () async {
       int? resultX;
@@ -161,6 +172,7 @@ void main() {
       expect(resultX, 10);
       expect(resultY, 20);
     });
+    ;
 
     test('Activate correctly parses coordinates', () async {
       int? resultX;
@@ -187,6 +199,7 @@ void main() {
       expect(resultX, 15);
       expect(resultY, 25);
     });
+    ;
 
     test('SecondaryActivate correctly parses coordinates', () async {
       int? resultX;
@@ -213,6 +226,7 @@ void main() {
       expect(resultX, 30);
       expect(resultY, 40);
     });
+    ;
 
     test('Scroll correctly parses delta and orientation', () async {
       int? resultDelta;
@@ -239,24 +253,36 @@ void main() {
       expect(resultDelta, 5);
       expect(resultOrientation, 'horizontal');
     });
+    ;
   });
+  ;
 
-  test('Update DBus Menu item Status properties and manage state dynamically', () async {
-    var client = StatusNotifierItemClient(
-        id: 'test',
-        menu: DBusMenuItem());
+  test('Update DBus Menu item Status properties and manage state dynamically',
+      () async {
+    var client = StatusNotifierItemClient(id: 'test', menu: DBusMenuItem());
 
     var object = client.menuObjectForTest;
 
     var response = await object.getProperty('com.canonical.dbusmenu', 'Status');
     expect(response, isA<DBusMethodSuccessResponse>());
-    expect((response as DBusMethodSuccessResponse).returnValues[0].asVariant().asString(), 'normal');
+    expect(
+        (response as DBusMethodSuccessResponse)
+            .returnValues[0]
+            .asVariant()
+            .asString(),
+        'normal');
 
     // Dynamically change menu status
     client.menuStatus = 'notice';
 
     response = await object.getProperty('com.canonical.dbusmenu', 'Status');
     expect(response, isA<DBusMethodSuccessResponse>());
-    expect((response as DBusMethodSuccessResponse).returnValues[0].asVariant().asString(), 'notice');
+    expect(
+        (response as DBusMethodSuccessResponse)
+            .returnValues[0]
+            .asVariant()
+            .asString(),
+        'notice');
   });
+  ;
 }

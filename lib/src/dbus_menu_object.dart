@@ -27,6 +27,9 @@ class DBusMenuItem {
   /// Called when this item is clicked.
   final Future<void> Function()? onClicked;
 
+  /// The properties of this menu item, encoded as DBus values. Computed lazily to avoid redundant allocations.
+  late final Map<String, DBusValue> properties = _computeProperties();
+
   /// Creates a new menu item.
   DBusMenuItem({
     this.type,
@@ -47,7 +50,7 @@ class DBusMenuItem {
 
   /// Creates a new separator menu item.
   DBusMenuItem.separator({bool visible = true})
-    : this(type: 'separator', visible: visible);
+      : this(type: 'separator', visible: visible);
 
   // Creates a new checkmark menu item. If [state] is true the item is checked.
   DBusMenuItem.checkmark(
@@ -57,13 +60,13 @@ class DBusMenuItem {
     bool state = false,
     Future<void> Function()? onClicked,
   }) : this(
-         visible: visible,
-         enabled: enabled,
-         label: label,
-         toggleType: 'checkmark',
-         toggleState: state ? 1 : 0,
-         onClicked: onClicked,
-       );
+          visible: visible,
+          enabled: enabled,
+          label: label,
+          toggleType: 'checkmark',
+          toggleState: state ? 1 : 0,
+          onClicked: onClicked,
+        );
 
   // Creates a new radio menu item. If [state] is true the item is active.
   DBusMenuItem.radio(
@@ -73,13 +76,48 @@ class DBusMenuItem {
     bool state = false,
     Future<void> Function()? onClicked,
   }) : this(
-         visible: visible,
-         enabled: enabled,
-         label: label,
-         toggleType: 'radio',
-         toggleState: state ? 1 : 0,
-         onClicked: onClicked,
-       );
+          visible: visible,
+          enabled: enabled,
+          label: label,
+          toggleType: 'radio',
+          toggleState: state ? 1 : 0,
+          onClicked: onClicked,
+        );
+
+  Map<String, DBusValue> _computeProperties() {
+    var props = <String, DBusValue>{};
+    if (type != null) {
+      props['type'] = DBusString(type!);
+    }
+    if (enabled != null) {
+      props['enabled'] = DBusBoolean(enabled!);
+    }
+    if (visible != null) {
+      props['visible'] = DBusBoolean(visible!);
+    }
+    if (label != null) {
+      props['label'] = DBusString(label!);
+    }
+    if (iconName != null) {
+      props['icon-name'] = DBusString(iconName!);
+    }
+    if (iconData != null) {
+      props['icon-data'] = DBusArray.byte(iconData!);
+    }
+    if (status != null) {
+      props['status'] = DBusString(_encodeDBusMenuStatus(status!));
+    }
+    if (toggleType != null) {
+      props['toggle-type'] = DBusString(toggleType!);
+    }
+    if (toggleState != null) {
+      props['toggle-state'] = DBusInt32(toggleState!);
+    }
+    if (children.isNotEmpty) {
+      props['children-display'] = DBusString('submenu');
+    }
+    return props;
+  }
 }
 
 /// The status of a menu item.
@@ -162,8 +200,8 @@ class DBusMenuObject extends DBusObject {
     List<DBusValue> allRemovedProperties,
   ) {
     var id = _idsByItem[originalItem]!;
-    var originalProperties = _makeMenuItemProperties(originalItem);
-    var newProperties = _makeMenuItemProperties(newItem);
+    var originalProperties = originalItem.properties;
+    var newProperties = newItem.properties;
     var updatedProperties = _getUpdatedProperties(
       originalProperties,
       newProperties,
@@ -542,7 +580,7 @@ class DBusMenuObject extends DBusObject {
         if (item == null) {
           return DBusMethodErrorResponse('com.canonical.dbusmenu.UnknownId');
         }
-        var properties = _makeMenuItemProperties(item);
+        var properties = item.properties;
         var property = properties[name];
         if (property == null) {
           return DBusMethodErrorResponse(
@@ -561,42 +599,6 @@ class DBusMenuObject extends DBusObject {
     _items.add(item);
     _idsByItem[item] = id;
     item.children.forEach(_registerIds);
-  }
-
-  // Build properties on menu items.
-  Map<String, DBusValue> _makeMenuItemProperties(DBusMenuItem item) {
-    var properties = <String, DBusValue>{};
-    if (item.type != null) {
-      properties['type'] = DBusString(item.type!);
-    }
-    if (item.enabled != null) {
-      properties['enabled'] = DBusBoolean(item.enabled!);
-    }
-    if (item.visible != null) {
-      properties['visible'] = DBusBoolean(item.visible!);
-    }
-    if (item.label != null) {
-      properties['label'] = DBusString(item.label!);
-    }
-    if (item.iconName != null) {
-      properties['icon-name'] = DBusString(item.iconName!);
-    }
-    if (item.iconData != null) {
-      properties['icon-data'] = DBusArray.byte(item.iconData!);
-    }
-    if (item.status != null) {
-      properties['status'] = DBusString(_encodeDBusMenuStatus(item.status!));
-    }
-    if (item.toggleType != null) {
-      properties['toggle-type'] = DBusString(item.toggleType!);
-    }
-    if (item.toggleState != null) {
-      properties['toggle-state'] = DBusInt32(item.toggleState!);
-    }
-    if (item.children.isNotEmpty) {
-      properties['children-display'] = DBusString('submenu');
-    }
-    return properties;
   }
 
   // Returns properties in [newProperties] that are new or have changed values from [originalProperties].
@@ -627,16 +629,15 @@ class DBusMenuObject extends DBusObject {
   DBusValue _makeMenuItem(DBusMenuItem item, int recursionDepth) {
     List<DBusValue> children = [];
     if (recursionDepth != 0) {
-      var nextRecursionDepth = recursionDepth < 0
-          ? recursionDepth
-          : recursionDepth - 1;
+      var nextRecursionDepth =
+          recursionDepth < 0 ? recursionDepth : recursionDepth - 1;
       for (var child in item.children) {
         children.add(_makeMenuItem(child, nextRecursionDepth));
       }
     }
     return DBusStruct([
       DBusInt32(_idsByItem[item] ?? -1),
-      DBusDict.stringVariant(_makeMenuItemProperties(item)),
+      DBusDict.stringVariant(item.properties),
       DBusArray.variant(children),
     ]);
   }

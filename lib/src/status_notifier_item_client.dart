@@ -481,8 +481,7 @@ class _StatusNotifierItemObject extends DBusObject {
         attentionIconPixmap.map((e) => e.toDBusStruct()),
       ),
       'AttentionMovieName': DBusString(attentionMovieName),
-      'ToolTip':
-          toolTip?.toDBusStruct() ??
+      'ToolTip': toolTip?.toDBusStruct() ??
           DBusStruct([
             DBusString(''),
             DBusArray(DBusSignature('(iiay)'), []),
@@ -658,9 +657,9 @@ class StatusNotifierItemClient {
     Future<void> Function(int x, int y)? onSecondaryActivate,
     Future<void> Function(int delta, String orientation)? onScroll,
     DBusClient? bus,
-  }) : _backend = backend,
-       _bus = bus ?? DBusClient.session(),
-       _closeBus = bus == null {
+  })  : _backend = backend,
+        _bus = bus ?? DBusClient.session(),
+        _closeBus = bus == null {
     _menuObject = DBusMenuObject(DBusObjectPath('/Menu'), menu);
     _notifierItemObject = _StatusNotifierItemObject(
       id: id,
@@ -765,17 +764,16 @@ class StatusNotifierItemClient {
     );
 
     // Listen for host registered signal
-    _hostRegisteredSubscription =
-        DBusSignalStream(
-          _bus,
-          sender: '$namespace.StatusNotifierWatcher',
-          path: DBusObjectPath('/StatusNotifierWatcher'),
-          interface: '$namespace.StatusNotifierWatcher',
-          name: 'StatusNotifierHostRegistered',
-          signature: DBusSignature.empty,
-        ).listen((signal) {
-          onHostRegisteredChanged?.call(true);
-        });
+    _hostRegisteredSubscription = DBusSignalStream(
+      _bus,
+      sender: '$namespace.StatusNotifierWatcher',
+      path: DBusObjectPath('/StatusNotifierWatcher'),
+      interface: '$namespace.StatusNotifierWatcher',
+      name: 'StatusNotifierHostRegistered',
+      signature: DBusSignature.empty,
+    ).listen((signal) {
+      onHostRegisteredChanged?.call(true);
+    });
 
     try {
       var hostReg = await isHostRegistered;
