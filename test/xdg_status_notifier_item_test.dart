@@ -8,7 +8,7 @@ class MockNotifierWatcherObject extends DBusObject {
   final String namespace;
 
   MockNotifierWatcherObject(this.namespace)
-      : super(DBusObjectPath('/StatusNotifierWatcher'));
+    : super(DBusObjectPath('/StatusNotifierWatcher'));
 
   @override
   Future<DBusMethodResponse> handleMethodCall(DBusMethodCall methodCall) async {
@@ -31,7 +31,7 @@ class MockNotifierWatcherServer extends DBusClient {
   final String namespace;
 
   MockNotifierWatcherServer(DBusAddress clientAddress, this.namespace)
-      : super(clientAddress) {
+    : super(clientAddress) {
     _root = MockNotifierWatcherObject(namespace);
   }
 
@@ -44,8 +44,9 @@ class MockNotifierWatcherServer extends DBusClient {
 void main() {
   test('connect (spec backend)', () async {
     var server = DBusServer();
-    var clientAddress =
-        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+    var clientAddress = await server.listenAddress(
+      DBusAddress.unix(dir: Directory.systemTemp),
+    );
     addTearDown(() async {
       await server.close();
     });
@@ -57,10 +58,11 @@ void main() {
     });
 
     var client = StatusNotifierItemClient(
-        id: 'test',
-        backend: StatusNotifierItemBackend.spec,
-        menu: DBusMenuItem(),
-        bus: DBusClient(clientAddress));
+      id: 'test',
+      backend: StatusNotifierItemBackend.spec,
+      menu: DBusMenuItem(),
+      bus: DBusClient(clientAddress),
+    );
     addTearDown(() async {
       await client.close();
     });
@@ -69,8 +71,9 @@ void main() {
 
   test('connect (kde backend)', () async {
     var server = DBusServer();
-    var clientAddress =
-        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+    var clientAddress = await server.listenAddress(
+      DBusAddress.unix(dir: Directory.systemTemp),
+    );
     addTearDown(() async {
       await server.close();
     });
@@ -82,10 +85,11 @@ void main() {
     });
 
     var client = StatusNotifierItemClient(
-        id: 'test',
-        backend: StatusNotifierItemBackend.kde,
-        menu: DBusMenuItem(),
-        bus: DBusClient(clientAddress));
+      id: 'test',
+      backend: StatusNotifierItemBackend.kde,
+      menu: DBusMenuItem(),
+      bus: DBusClient(clientAddress),
+    );
     addTearDown(() async {
       await client.close();
     });
@@ -97,19 +101,21 @@ void main() {
       int? resultX;
       int? resultY;
       var client = StatusNotifierItemClient(
-          id: 'test',
-          menu: DBusMenuItem(),
-          onContextMenu: (x, y) async {
-            resultX = x;
-            resultY = y;
-          });
+        id: 'test',
+        menu: DBusMenuItem(),
+        onContextMenu: (x, y) async {
+          resultX = x;
+          resultY = y;
+        },
+      );
 
       var object = client.notifierItemObjectForTest;
       var methodCall = DBusMethodCall(
-          sender: 'org.freedesktop.DBus',
-          interface: 'org.freedesktop.StatusNotifierItem',
-          name: 'ContextMenu',
-          values: [DBusInt32(10), DBusInt32(20)]);
+        sender: 'org.freedesktop.DBus',
+        interface: 'org.freedesktop.StatusNotifierItem',
+        name: 'ContextMenu',
+        values: [DBusInt32(10), DBusInt32(20)],
+      );
 
       var response = await object.handleMethodCall(methodCall);
       expect(response, isA<DBusMethodSuccessResponse>());
@@ -121,19 +127,21 @@ void main() {
       int? resultX;
       int? resultY;
       var client = StatusNotifierItemClient(
-          id: 'test',
-          menu: DBusMenuItem(),
-          onActivate: (x, y) async {
-            resultX = x;
-            resultY = y;
-          });
+        id: 'test',
+        menu: DBusMenuItem(),
+        onActivate: (x, y) async {
+          resultX = x;
+          resultY = y;
+        },
+      );
 
       var object = client.notifierItemObjectForTest;
       var methodCall = DBusMethodCall(
-          sender: 'org.freedesktop.DBus',
-          interface: 'org.freedesktop.StatusNotifierItem',
-          name: 'Activate',
-          values: [DBusInt32(15), DBusInt32(25)]);
+        sender: 'org.freedesktop.DBus',
+        interface: 'org.freedesktop.StatusNotifierItem',
+        name: 'Activate',
+        values: [DBusInt32(15), DBusInt32(25)],
+      );
 
       var response = await object.handleMethodCall(methodCall);
       expect(response, isA<DBusMethodSuccessResponse>());
@@ -145,19 +153,21 @@ void main() {
       int? resultX;
       int? resultY;
       var client = StatusNotifierItemClient(
-          id: 'test',
-          menu: DBusMenuItem(),
-          onSecondaryActivate: (x, y) async {
-            resultX = x;
-            resultY = y;
-          });
+        id: 'test',
+        menu: DBusMenuItem(),
+        onSecondaryActivate: (x, y) async {
+          resultX = x;
+          resultY = y;
+        },
+      );
 
       var object = client.notifierItemObjectForTest;
       var methodCall = DBusMethodCall(
-          sender: 'org.freedesktop.DBus',
-          interface: 'org.freedesktop.StatusNotifierItem',
-          name: 'SecondaryActivate',
-          values: [DBusInt32(30), DBusInt32(40)]);
+        sender: 'org.freedesktop.DBus',
+        interface: 'org.freedesktop.StatusNotifierItem',
+        name: 'SecondaryActivate',
+        values: [DBusInt32(30), DBusInt32(40)],
+      );
 
       var response = await object.handleMethodCall(methodCall);
       expect(response, isA<DBusMethodSuccessResponse>());
@@ -169,19 +179,21 @@ void main() {
       int? resultDelta;
       String? resultOrientation;
       var client = StatusNotifierItemClient(
-          id: 'test',
-          menu: DBusMenuItem(),
-          onScroll: (delta, orientation) async {
-            resultDelta = delta;
-            resultOrientation = orientation;
-          });
+        id: 'test',
+        menu: DBusMenuItem(),
+        onScroll: (delta, orientation) async {
+          resultDelta = delta;
+          resultOrientation = orientation;
+        },
+      );
 
       var object = client.notifierItemObjectForTest;
       var methodCall = DBusMethodCall(
-          sender: 'org.freedesktop.DBus',
-          interface: 'org.freedesktop.StatusNotifierItem',
-          name: 'Scroll',
-          values: [DBusInt32(5), DBusString('horizontal')]);
+        sender: 'org.freedesktop.DBus',
+        interface: 'org.freedesktop.StatusNotifierItem',
+        name: 'Scroll',
+        values: [DBusInt32(5), DBusString('horizontal')],
+      );
 
       var response = await object.handleMethodCall(methodCall);
       expect(response, isA<DBusMethodSuccessResponse>());

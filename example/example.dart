@@ -6,38 +6,58 @@ var checkmarkIsActive = true;
 var activeRadio = 1;
 
 DBusMenuItem buildMenu() {
-  return DBusMenuItem(children: [
-    DBusMenuItem(
+  return DBusMenuItem(
+    children: [
+      DBusMenuItem(
         label: itemClicked ? 'Clicked Item' : 'Item',
-        onClicked: () async => await handleClick()),
-    DBusMenuItem(label: 'Disabled Item', enabled: false),
-    DBusMenuItem(label: 'Invisible Item', visible: false),
-    DBusMenuItem.separator(),
-    DBusMenuItem(label: 'Submenu', children: [
+        onClicked: () async => await handleClick(),
+      ),
+      DBusMenuItem(label: 'Disabled Item', enabled: false),
+      DBusMenuItem(label: 'Invisible Item', visible: false),
+      DBusMenuItem.separator(),
       DBusMenuItem(
-          label: 'Submenu 1',
-          onClicked: () async => print('Submenu item 1 clicked!')),
-      DBusMenuItem(
-          label: 'Submenu 2',
-          onClicked: () async => print('Submenu item 2 clicked!')),
-      DBusMenuItem(
-          label: 'Submenu 3',
-          onClicked: () async => print('Submenu item 3 clicked!'))
-    ]),
-    DBusMenuItem.separator(),
-    DBusMenuItem.checkmark('Checkmark',
+        label: 'Submenu',
+        children: [
+          DBusMenuItem(
+            label: 'Submenu 1',
+            onClicked: () async => print('Submenu item 1 clicked!'),
+          ),
+          DBusMenuItem(
+            label: 'Submenu 2',
+            onClicked: () async => print('Submenu item 2 clicked!'),
+          ),
+          DBusMenuItem(
+            label: 'Submenu 3',
+            onClicked: () async => print('Submenu item 3 clicked!'),
+          ),
+        ],
+      ),
+      DBusMenuItem.separator(),
+      DBusMenuItem.checkmark(
+        'Checkmark',
         state: checkmarkIsActive,
-        onClicked: () async => await toggleCheckmark()),
-    DBusMenuItem.separator(),
-    DBusMenuItem.checkmark('Radio 1',
-        state: activeRadio == 1, onClicked: () async => await setRadio(1)),
-    DBusMenuItem.checkmark('Radio 2',
-        state: activeRadio == 2, onClicked: () async => await setRadio(2)),
-    DBusMenuItem.checkmark('Radio 3',
-        state: activeRadio == 3, onClicked: () async => await setRadio(3)),
-    DBusMenuItem.separator(),
-    DBusMenuItem(label: 'Quit', onClicked: () async => await client.close()),
-  ]);
+        onClicked: () async => await toggleCheckmark(),
+      ),
+      DBusMenuItem.separator(),
+      DBusMenuItem.checkmark(
+        'Radio 1',
+        state: activeRadio == 1,
+        onClicked: () async => await setRadio(1),
+      ),
+      DBusMenuItem.checkmark(
+        'Radio 2',
+        state: activeRadio == 2,
+        onClicked: () async => await setRadio(2),
+      ),
+      DBusMenuItem.checkmark(
+        'Radio 3',
+        state: activeRadio == 3,
+        onClicked: () async => await setRadio(3),
+      ),
+      DBusMenuItem.separator(),
+      DBusMenuItem(label: 'Quit', onClicked: () async => await client.close()),
+    ],
+  );
 }
 
 Future<void> rebuild() async {
@@ -61,6 +81,9 @@ Future<void> setRadio(int active) async {
 
 void main() async {
   client = StatusNotifierItemClient(
-      id: 'dart-test', iconName: 'computer-fail-symbolic', menu: buildMenu());
+    id: 'dart-test',
+    iconName: 'computer-fail-symbolic',
+    menu: buildMenu(),
+  );
   await client.connect();
 }
