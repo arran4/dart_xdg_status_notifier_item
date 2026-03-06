@@ -386,6 +386,7 @@ class StatusNotifierItemClient {
 
   // Expose notifier item object for testing purposes
   DBusObject get notifierItemObjectForTest => _notifierItemObject;
+  DBusObject get menuObjectForTest => _menuObject;
 
   /// The backend to use.
   final StatusNotifierItemBackend _backend;
@@ -660,6 +661,14 @@ class StatusNotifierItemClient {
   /// Updates the menu shown.
   Future<void> updateMenu(DBusMenuItem menu) async {
     await _menuObject.update(menu);
+  }
+
+  /// Gets the current menu status.
+  String get menuStatus => _menuObject.status;
+
+  /// Sets the menu status dynamically.
+  set menuStatus(String value) {
+    _menuObject.status = value;
   }
 
   /// Terminates all active connections and unregisters the item. If a client remains unclosed, the Dart process may not terminate.
