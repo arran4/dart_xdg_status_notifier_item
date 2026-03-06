@@ -440,121 +440,151 @@ class DBusMenuObject extends DBusObject {
 
     switch (methodCall.name) {
       case 'AboutToShow':
-        if (methodCall.signature != DBusSignature('i')) {
-          return DBusMethodErrorResponse.invalidArgs();
-        }
-        var id = methodCall.values[0].asInt32();
-        var item = _getItem(id);
-        if (item == null) {
-          return DBusMethodErrorResponse('com.canonical.dbusmenu.UnknownId');
-        }
-        var needsUpdate = await item.onAboutToShow?.call() ?? false;
-        if (needsUpdate) {
-          // We signal the layout update to allow the host to re-read the layout.
-          await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
-            DBusUint32(1), // revision
-            DBusInt32(id), // parent id
-          ]);
-        }
-        return DBusMethodSuccessResponse([DBusBoolean(needsUpdate)]);
+        return _handleAboutToShowMethod(methodCall);
       case 'AboutToShowGroup':
-        if (methodCall.signature != DBusSignature('ai')) {
-          return DBusMethodErrorResponse.invalidArgs();
-        }
-        var ids = methodCall.values[0].asInt32Array();
-        var updatesNeeded = <int>[];
-        var idErrors = <int>[];
-        await Future.wait(
-          ids.map((id) async {
-            var item = _getItem(id);
-            if (item == null) {
-              idErrors.add(id);
-            } else {
-              var needsUpdate = await item.onAboutToShow?.call() ?? false;
-              if (needsUpdate) {
-                updatesNeeded.add(id);
-                await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
-                  DBusUint32(1), // revision
-                  DBusInt32(id), // parent id
-                ]);
-              }
-            }
-          }),
-        );
-        return DBusMethodSuccessResponse([
-          DBusArray.int32(updatesNeeded),
-          DBusArray.int32(idErrors),
-        ]);
+        return _handleAboutToShowGroupMethod(methodCall);
       case 'Event':
-        if (methodCall.signature != DBusSignature('isvu')) {
-          return DBusMethodErrorResponse.invalidArgs();
-        }
-        var id = methodCall.values[0].asInt32();
-        var eventId = methodCall.values[1].asString();
-        var data = methodCall.values[2].asVariant();
-        var timestamp = methodCall.values[3].asUint32();
-        var item = _getItem(id);
-        if (item == null) {
-          return DBusMethodErrorResponse('com.canonical.dbusmenu.UnknownId');
-        }
-        await _handleEvent(item, eventId, data, timestamp);
-        return DBusMethodSuccessResponse();
+        return _handleEventMethod(methodCall);
       case 'EventGroup':
-        if (methodCall.signature != DBusSignature('a(isvu)')) {
-          return DBusMethodErrorResponse.invalidArgs();
-        }
-        var events = methodCall.values[0].asArray();
-        var idErrors = <int>[];
-        for (var event in events) {
-          var values = event.asArray();
-          var id = values[0].asInt32();
-          var eventId = values[1].asString();
-          var data = values[2].asVariant();
-          var timestamp = values[3].asUint32();
-          var item = _getItem(id);
-          if (item == null) {
-            idErrors.add(id);
-          } else {
-            await _handleEvent(item, eventId, data, timestamp);
-          }
-        }
-        return DBusMethodSuccessResponse([DBusArray.int32(idErrors)]);
+        return _handleEventGroupMethod(methodCall);
       case 'GetLayout':
-        if (methodCall.signature != DBusSignature('iias')) {
-          return DBusMethodErrorResponse.invalidArgs();
-        }
-        var parentId = methodCall.values[0].asInt32();
-        var recursionDepth = methodCall.values[1].asInt32();
-        var item = _getItem(parentId);
-        if (item == null) {
-          return DBusMethodErrorResponse('com.canonical.dbusmenu.UnknownId');
-        }
-        var revision = 1;
-        return DBusMethodSuccessResponse([
-          DBusUint32(revision),
-          _makeMenuItem(item, recursionDepth),
-        ]);
+        return _handleGetLayoutMethod(methodCall);
       case 'GetProperty':
-        if (methodCall.signature != DBusSignature('is')) {
-          return DBusMethodErrorResponse.invalidArgs();
-        }
-        var id = methodCall.values[0].asInt32();
-        var name = methodCall.values[1].asString();
-        var item = _getItem(id);
-        if (item == null) {
-          return DBusMethodErrorResponse('com.canonical.dbusmenu.UnknownId');
-        }
-        var properties = _makeMenuItemProperties(item);
-        var property = properties[name];
-        if (property == null) {
-          return DBusMethodErrorResponse(
-            'com.canonical.dbusmenu.UnknownProperty',
-          );
-        }
-        return DBusMethodSuccessResponse([DBusVariant(property)]);
+        return _handleGetPropertyMethod(methodCall);
       default:
         return DBusMethodErrorResponse.unknownMethod();
     }
+  }
+
+  Future<DBusMethodResponse> _handleAboutToShowMethod(
+      DBusMethodCall methodCall) async {
+    if (methodCall.signature != DBusSignature('i')) {
+      return DBusMethodErrorResponse.invalidArgs();
+    }
+    var id = methodCall.values[0].asInt32();
+    var item = _getItem(id);
+    if (item == null) {
+      return DBusMethodErrorResponse('com.canonical.dbusmenu.UnknownId');
+    }
+    var needsUpdate = await item.onAboutToShow?.call() ?? false;
+    if (needsUpdate) {
+      // We signal the layout update to allow the host to re-read the layout.
+      await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
+        DBusUint32(1), // revision
+        DBusInt32(id), // parent id
+      ]);
+    }
+    return DBusMethodSuccessResponse([DBusBoolean(needsUpdate)]);
+  }
+
+  Future<DBusMethodResponse> _handleAboutToShowGroupMethod(
+      DBusMethodCall methodCall) async {
+    if (methodCall.signature != DBusSignature('ai')) {
+      return DBusMethodErrorResponse.invalidArgs();
+    }
+    var ids = methodCall.values[0].asInt32Array();
+    var updatesNeeded = <int>[];
+    var idErrors = <int>[];
+    await Future.wait(
+      ids.map((id) async {
+        var item = _getItem(id);
+        if (item == null) {
+          idErrors.add(id);
+        } else {
+          var needsUpdate = await item.onAboutToShow?.call() ?? false;
+          if (needsUpdate) {
+            updatesNeeded.add(id);
+            await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
+              DBusUint32(1), // revision
+              DBusInt32(id), // parent id
+            ]);
+          }
+        }
+      }),
+    );
+    return DBusMethodSuccessResponse([
+      DBusArray.int32(updatesNeeded),
+      DBusArray.int32(idErrors),
+    ]);
+  }
+
+  Future<DBusMethodResponse> _handleEventMethod(
+      DBusMethodCall methodCall) async {
+    if (methodCall.signature != DBusSignature('isvu')) {
+      return DBusMethodErrorResponse.invalidArgs();
+    }
+    var id = methodCall.values[0].asInt32();
+    var eventId = methodCall.values[1].asString();
+    var data = methodCall.values[2].asVariant();
+    var timestamp = methodCall.values[3].asUint32();
+    var item = _getItem(id);
+    if (item == null) {
+      return DBusMethodErrorResponse('com.canonical.dbusmenu.UnknownId');
+    }
+    await _handleEvent(item, eventId, data, timestamp);
+    return DBusMethodSuccessResponse();
+  }
+
+  Future<DBusMethodResponse> _handleEventGroupMethod(
+      DBusMethodCall methodCall) async {
+    if (methodCall.signature != DBusSignature('a(isvu)')) {
+      return DBusMethodErrorResponse.invalidArgs();
+    }
+    var events = methodCall.values[0].asArray();
+    var idErrors = <int>[];
+    for (var event in events) {
+      var values = event.asArray();
+      var id = values[0].asInt32();
+      var eventId = values[1].asString();
+      var data = values[2].asVariant();
+      var timestamp = values[3].asUint32();
+      var item = _getItem(id);
+      if (item == null) {
+        idErrors.add(id);
+      } else {
+        await _handleEvent(item, eventId, data, timestamp);
+      }
+    }
+    return DBusMethodSuccessResponse([DBusArray.int32(idErrors)]);
+  }
+
+  Future<DBusMethodResponse> _handleGetLayoutMethod(
+      DBusMethodCall methodCall) async {
+    if (methodCall.signature != DBusSignature('iias')) {
+      return DBusMethodErrorResponse.invalidArgs();
+    }
+    var parentId = methodCall.values[0].asInt32();
+    var recursionDepth = methodCall.values[1].asInt32();
+    var item = _getItem(parentId);
+    if (item == null) {
+      return DBusMethodErrorResponse('com.canonical.dbusmenu.UnknownId');
+    }
+    var revision = 1;
+    return DBusMethodSuccessResponse([
+      DBusUint32(revision),
+      _makeMenuItem(item, recursionDepth),
+    ]);
+  }
+
+  Future<DBusMethodResponse> _handleGetPropertyMethod(
+      DBusMethodCall methodCall) async {
+    if (methodCall.signature != DBusSignature('is')) {
+      return DBusMethodErrorResponse.invalidArgs();
+    }
+    var id = methodCall.values[0].asInt32();
+    var name = methodCall.values[1].asString();
+    var item = _getItem(id);
+    if (item == null) {
+      return DBusMethodErrorResponse('com.canonical.dbusmenu.UnknownId');
+    }
+    var properties = _makeMenuItemProperties(item);
+    var property = properties[name];
+    if (property == null) {
+      return DBusMethodErrorResponse(
+        'com.canonical.dbusmenu.UnknownProperty',
+      );
+    }
+    return DBusMethodSuccessResponse([DBusVariant(property)]);
   }
 
   // Register a new [item] and assign it an id.
