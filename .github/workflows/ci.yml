@@ -142,6 +142,18 @@ jobs:
             echo "profile=public" >> "$GITHUB_OUTPUT"
           fi
 
+  dart-format:
+    name: Dart format
+    needs: [route, discover]
+    if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) && needs.discover.outputs.has_dart == 'true' && needs.route.outputs.run_code_checks == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - run: dart --version
+      - run: dart pub get
+      - run: dart format --set-exit-if-changed .
+
   dart-analyze-test:
     name: Dart analyze/test
     needs: [route, discover]
@@ -152,13 +164,12 @@ jobs:
       - uses: dart-lang/setup-dart@v1
       - run: dart --version
       - run: dart pub get
-      - run: dart format --set-exit-if-changed .
       - run: dart analyze
       - run: dart test
 
   dart-release-prep:
     name: Dart release prep
-    needs: [route, discover, dart-analyze-test]
+    needs: [route, discover, dart-format, dart-analyze-test]
     if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) && github.event_name == 'workflow_dispatch' && (inputs.mode == 'release' || inputs.mode == 'release-snapshot') && needs.discover.outputs.has_dart == 'true' }}
     runs-on: ubuntu-latest
     steps:
@@ -203,7 +214,7 @@ jobs:
 
   publish-dart:
     name: Publish Dart Package to pub.dev
-    needs: [route, discover, dart-analyze-test, dart-release-prep]
+    needs: [route, discover, dart-format, dart-analyze-test, dart-release-prep]
     if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) && needs.route.outputs.run_release == 'true' && needs.discover.outputs.has_dart == 'true' }}
     runs-on: ubuntu-latest
     steps:
