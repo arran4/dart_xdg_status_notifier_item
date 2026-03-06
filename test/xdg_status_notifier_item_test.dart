@@ -133,7 +133,7 @@ void main() {
     expect(client.title, 'test');
     client.title = 'new test';
     expect(client.title, 'new test');
-  })
+  });
   
   group('StatusNotifierItemClient actions', () {
     test('ContextMenu correctly parses coordinates', () async {

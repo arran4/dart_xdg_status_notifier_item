@@ -389,109 +389,57 @@ class _StatusNotifierItemObject extends DBusObject {
     }
   }
 
+  Map<String, DBusValue> get _properties => {
+    'Category': DBusString(_encodeCategory(category)),
+    'Id': DBusString(id),
+    'Title': DBusString(title),
+    'Status': DBusString(_encodeStatus(status)),
+    'WindowId': DBusInt32(windowId),
+    'IconName': DBusString(iconName),
+    'IconPixmap': DBusArray(
+      DBusSignature('(iiay)'),
+      iconPixmap.map((e) => e.toDBusStruct()),
+    ),
+    'OverlayIconName': DBusString(overlayIconName),
+    'OverlayIconPixmap': DBusArray(
+      DBusSignature('(iiay)'),
+      overlayIconPixmap.map((e) => e.toDBusStruct()),
+    ),
+    'AttentionIconName': DBusString(attentionIconName),
+    'AttentionIconPixmap': DBusArray(
+      DBusSignature('(iiay)'),
+      attentionIconPixmap.map((e) => e.toDBusStruct()),
+    ),
+    'AttentionMovieName': DBusString(attentionMovieName),
+    'ToolTip':
+        toolTip?.toDBusStruct() ??
+        DBusStruct([
+          DBusString(''),
+          DBusArray(DBusSignature('(iiay)'), []),
+          DBusString(''),
+          DBusString(''),
+        ]),
+    'ItemIsMenu': DBusBoolean(itemIsMenu),
+    'Menu': menu,
+  };
+
   @override
   Future<DBusMethodResponse> getProperty(String interface, String name) async {
     if (interface != 'org.freedesktop.StatusNotifierItem') {
       return DBusMethodErrorResponse.unknownProperty();
     }
 
-    switch (name) {
-      case 'Category':
-        return DBusGetPropertyResponse(DBusString(_encodeCategory(category)));
-      case 'Id':
-        return DBusGetPropertyResponse(DBusString(id));
-      case 'Title':
-        return DBusGetPropertyResponse(DBusString(title));
-      case 'Status':
-        return DBusGetPropertyResponse(DBusString(_encodeStatus(status)));
-      case 'WindowId':
-        return DBusGetPropertyResponse(DBusInt32(windowId));
-      case 'IconName':
-        return DBusGetPropertyResponse(DBusString(iconName));
-      case 'IconPixmap':
-        return DBusGetPropertyResponse(
-          DBusArray(
-            DBusSignature('(iiay)'),
-            iconPixmap.map((e) => e.toDBusStruct()),
-          ),
-        );
-      case 'OverlayIconName':
-        return DBusGetPropertyResponse(DBusString(overlayIconName));
-      case 'OverlayIconPixmap':
-        return DBusGetPropertyResponse(
-          DBusArray(
-            DBusSignature('(iiay)'),
-            overlayIconPixmap.map((e) => e.toDBusStruct()),
-          ),
-        );
-      case 'AttentionIconName':
-        return DBusGetPropertyResponse(DBusString(attentionIconName));
-      case 'AttentionIconPixmap':
-        return DBusGetPropertyResponse(
-          DBusArray(
-            DBusSignature('(iiay)'),
-            attentionIconPixmap.map((e) => e.toDBusStruct()),
-          ),
-        );
-      case 'AttentionMovieName':
-        return DBusGetPropertyResponse(DBusString(attentionMovieName));
-      case 'ToolTip':
-        if (toolTip != null) {
-          return DBusGetPropertyResponse(toolTip!.toDBusStruct());
-        } else {
-          return DBusGetPropertyResponse(
-            DBusStruct([
-              DBusString(''),
-              DBusArray(DBusSignature('(iiay)'), []),
-              DBusString(''),
-              DBusString(''),
-            ]),
-          );
-        }
-      case 'ItemIsMenu':
-        return DBusGetPropertyResponse(DBusBoolean(itemIsMenu));
-      case 'Menu':
-        return DBusGetPropertyResponse(menu);
-      default:
-        return DBusMethodErrorResponse.unknownProperty();
+    var value = _properties[name];
+    if (value != null) {
+      return DBusGetPropertyResponse(value);
     }
+
+    return DBusMethodErrorResponse.unknownProperty();
   }
 
   @override
   Future<DBusMethodResponse> getAllProperties(String interface) async {
-    return DBusGetAllPropertiesResponse({
-      'Category': DBusString(_encodeCategory(category)),
-      'Id': DBusString(id),
-      'Title': DBusString(title),
-      'Status': DBusString(_encodeStatus(status)),
-      'WindowId': DBusInt32(windowId),
-      'IconName': DBusString(iconName),
-      'IconPixmap': DBusArray(
-        DBusSignature('(iiay)'),
-        iconPixmap.map((e) => e.toDBusStruct()),
-      ),
-      'OverlayIconName': DBusString(overlayIconName),
-      'OverlayIconPixmap': DBusArray(
-        DBusSignature('(iiay)'),
-        overlayIconPixmap.map((e) => e.toDBusStruct()),
-      ),
-      'AttentionIconName': DBusString(attentionIconName),
-      'AttentionIconPixmap': DBusArray(
-        DBusSignature('(iiay)'),
-        attentionIconPixmap.map((e) => e.toDBusStruct()),
-      ),
-      'AttentionMovieName': DBusString(attentionMovieName),
-      'ToolTip':
-          toolTip?.toDBusStruct() ??
-          DBusStruct([
-            DBusString(''),
-            DBusArray(DBusSignature('(iiay)'), []),
-            DBusString(''),
-            DBusString(''),
-          ]),
-      'ItemIsMenu': DBusBoolean(itemIsMenu),
-      'Menu': menu,
-    });
+    return DBusGetAllPropertiesResponse(_properties);
   }
 }
 
