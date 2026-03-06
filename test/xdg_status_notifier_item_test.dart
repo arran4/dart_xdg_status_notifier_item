@@ -1,8 +1,7 @@
 import 'dart:io';
 
 import 'package:dbus/dbus.dart';
-import 'package:dart_xdg_status_notifier_item/xdg_status_notifier_item.dart';
-import 'package:dart_xdg_status_notifier_item/src/utils.dart';
+import 'package:dart_xdg_status_notifier_item/dart_xdg_status_notifier_item.dart';
 
 import 'package:test/test.dart';
 

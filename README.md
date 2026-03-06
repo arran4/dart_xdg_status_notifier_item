@@ -26,7 +26,7 @@ flutter pub add dart_xdg_status_notifier_item
 ## Sample
 
 ```dart
-import 'package:dart_xdg_status_notifier_item/xdg_status_notifier_item.dart';
+import 'package:dart_xdg_status_notifier_item/dart_xdg_status_notifier_item.dart';
 
 late final StatusNotifierItemClient client;
 
