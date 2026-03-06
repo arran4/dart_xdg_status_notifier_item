@@ -662,71 +662,51 @@ class StatusNotifierItemClient {
     );
   }
 
-  final List<String> _requestedNames = [];
-  final Map<String, DBusRemoteObject> _watcherRemoteObjects = {};
-  final List<StreamSubscription<DBusSignal>> _hostRegisteredSubscriptions = [];
+  String? _requestedName;
+  DBusRemoteObject? _watcherRemoteObject;
+  StreamSubscription<DBusSignal>? _hostRegisteredSubscription;
+  String? _resolvedNamespace;
+
+  /// Returns the resolved backend namespace that was actually used, or null if none connected.
+  String? get resolvedNamespace => _resolvedNamespace;
 
   /// Triggered when the IsStatusNotifierHostRegistered property changes or when the StatusNotifierHostRegistered signal is received.
   Future<void> Function(bool)? onHostRegisteredChanged;
 
   /// Returns whether a StatusNotifierHost is currently registered and running.
   Future<bool> get isHostRegistered async {
-    for (var entry in _watcherRemoteObjects.entries) {
-      var namespace = entry.key;
-      var watcher = entry.value;
-      try {
-        var result = await watcher.getProperty(
-          '$namespace.StatusNotifierWatcher',
-          'IsStatusNotifierHostRegistered',
-        );
-        if (result.asBoolean()) return true;
-      } catch (e) {
-        // Ignore and try the next one
-      }
-    }
-    return false;
+    if (_watcherRemoteObject == null || _resolvedNamespace == null) return false;
+    var result = await _watcherRemoteObject!.getProperty(
+      '$_resolvedNamespace.StatusNotifierWatcher',
+      'IsStatusNotifierHostRegistered',
+    );
+    return result.asBoolean();
   }
 
   /// Returns the protocol version of the StatusNotifierWatcher.
   Future<int> get protocolVersion async {
-    for (var entry in _watcherRemoteObjects.entries) {
-      var namespace = entry.key;
-      var watcher = entry.value;
-      try {
-        var result = await watcher.getProperty(
-          '$namespace.StatusNotifierWatcher',
-          'ProtocolVersion',
-        );
-        return result.asInt32();
-      } catch (e) {
-        // Ignore and try the next one
-      }
-    }
-    return -1;
+    if (_watcherRemoteObject == null || _resolvedNamespace == null) return -1;
+    var result = await _watcherRemoteObject!.getProperty(
+      '$_resolvedNamespace.StatusNotifierWatcher',
+      'ProtocolVersion',
+    );
+    return result.asInt32();
   }
 
   /// Returns the currently registered status notifier items.
   Future<List<String>> get registeredStatusNotifierItems async {
-    for (var entry in _watcherRemoteObjects.entries) {
-      var namespace = entry.key;
-      var watcher = entry.value;
-      try {
-        var result = await watcher.getProperty(
-          '$namespace.StatusNotifierWatcher',
-          'RegisteredStatusNotifierItems',
-        );
-        return result.asStringArray().toList();
-      } catch (e) {
-        // Ignore and try the next one
-      }
-    }
-    return [];
+    if (_watcherRemoteObject == null || _resolvedNamespace == null) return [];
+    var result = await _watcherRemoteObject!.getProperty(
+      '$_resolvedNamespace.StatusNotifierWatcher',
+      'RegisteredStatusNotifierItems',
+    );
+    return result.asStringArray().toList();
   }
 
   List<String> _getNamespaces() {
     switch (_backend) {
       case StatusNotifierItemBackend.auto:
-        return ['org.kde', 'org.freedesktop', 'org.ayatana.appindicator'];
+        return ['org.kde', 'org.freedesktop']; // Exclude ayatana as a watcher backend standard
       case StatusNotifierItemBackend.spec:
         return ['org.freedesktop'];
       case StatusNotifierItemBackend.kde:
@@ -736,11 +716,49 @@ class StatusNotifierItemClient {
     }
   }
 
+  Future<bool> _nameExists(String name) async {
+    try {
+      var result = await _bus.callMethod(
+        destination: 'org.freedesktop.DBus',
+        path: DBusObjectPath('/org/freedesktop/DBus'),
+        interface: 'org.freedesktop.DBus',
+        name: 'NameHasOwner',
+        values: [DBusString(name)],
+        replySignature: DBusSignature('b'),
+      );
+      return result.returnValues[0].asBoolean();
+    } catch (_) {
+      return false;
+    }
+  }
+
   // Connect to D-Bus and register this notifier item.
   Future<void> connect({
     bool requireWatcher = false,
   }) async {
     var namespaces = _getNamespaces();
+    String? targetNamespace;
+
+    // Probe to find the right watcher namespace if auto
+    if (_backend == StatusNotifierItemBackend.auto) {
+      for (var ns in namespaces) {
+        if (await _nameExists('$ns.StatusNotifierWatcher')) {
+          targetNamespace = ns;
+          break;
+        }
+      }
+      // If we didn't explicitly find one owning a name, fallback to the first to attempt trial-and-error
+      targetNamespace ??= namespaces.first;
+    } else {
+      targetNamespace = namespaces.first;
+    }
+
+    _resolvedNamespace = targetNamespace;
+
+    var name = '$targetNamespace.StatusNotifierItem-$pid-1';
+    var requestResult = await _bus.requestName(name);
+    assert(requestResult == DBusRequestNameReply.primaryOwner);
+    _requestedName = name;
 
     // Register the menu.
     await _bus.registerObject(_menuObject);
@@ -748,63 +766,85 @@ class StatusNotifierItemClient {
     // Put the item on the bus.
     await _bus.registerObject(_notifierItemObject);
 
-    bool anyRegistered = false;
+    _watcherRemoteObject = DBusRemoteObject(
+      _bus,
+      name: '$targetNamespace.StatusNotifierWatcher',
+      path: DBusObjectPath('/StatusNotifierWatcher'),
+    );
 
-    for (var namespace in namespaces) {
-      var name = '$namespace.StatusNotifierItem-$pid-1';
-      try {
-        var requestResult = await _bus.requestName(name);
-        if (requestResult == DBusRequestNameReply.primaryOwner) {
-          _requestedNames.add(name);
-        } else {
-          _logger.warning('Failed to acquire name: $name');
-          continue;
-        }
+    try {
+      // Register the item.
+      await _bus.callMethod(
+        destination: '$targetNamespace.StatusNotifierWatcher',
+        path: DBusObjectPath('/StatusNotifierWatcher'),
+        interface: '$targetNamespace.StatusNotifierWatcher',
+        name: 'RegisterStatusNotifierItem',
+        values: [DBusString(name)],
+        replySignature: DBusSignature.empty,
+      );
 
-        var watcherRemoteObject = DBusRemoteObject(
-          _bus,
-          name: '$namespace.StatusNotifierWatcher',
-          path: DBusObjectPath('/StatusNotifierWatcher'),
-        );
+      // Listen for host registered signal
+      _hostRegisteredSubscription = DBusSignalStream(
+        _bus,
+        sender: '$targetNamespace.StatusNotifierWatcher',
+        path: DBusObjectPath('/StatusNotifierWatcher'),
+        interface: '$targetNamespace.StatusNotifierWatcher',
+        name: 'StatusNotifierHostRegistered',
+        signature: DBusSignature.empty,
+      ).listen((signal) {
+        onHostRegisteredChanged?.call(true);
+      });
 
-        // Register the item.
-        await _bus.callMethod(
-          destination: '$namespace.StatusNotifierWatcher',
-          path: DBusObjectPath('/StatusNotifierWatcher'),
-          interface: '$namespace.StatusNotifierWatcher',
-          name: 'RegisterStatusNotifierItem',
-          values: [DBusString(name)],
-          replySignature: DBusSignature.empty,
-        );
-
-        _watcherRemoteObjects[namespace] = watcherRemoteObject;
-
-        // Listen for host registered signal
-        var sub = DBusSignalStream(
-          _bus,
-          sender: '$namespace.StatusNotifierWatcher',
-          path: DBusObjectPath('/StatusNotifierWatcher'),
-          interface: '$namespace.StatusNotifierWatcher',
-          name: 'StatusNotifierHostRegistered',
-          signature: DBusSignature.empty,
-        ).listen((signal) {
-          onHostRegisteredChanged?.call(true);
-        });
-        _hostRegisteredSubscriptions.add(sub);
-
-        anyRegistered = true;
-      } catch (e) {
-        if (requireWatcher && namespaces.length == 1) {
-          rethrow;
-        }
-        _logger.fine('Failed to register status notifier item in $namespace: $e');
+      _logger.info('Resolved StatusNotifier backend: $targetNamespace');
+    } catch (e) {
+      if (requireWatcher) {
+        rethrow;
       }
-    }
 
-    if (!anyRegistered && requireWatcher) {
-      throw Exception('Failed to register status notifier item with any watcher.');
-    } else if (!anyRegistered) {
-      _logger.warning('Failed to register status notifier item with any watcher.');
+      // Attempt fallback if auto and the first attempt failed despite probe
+      if (_backend == StatusNotifierItemBackend.auto && targetNamespace == 'org.kde') {
+        _logger.fine('Registration failed for org.kde, attempting fallback to org.freedesktop');
+        targetNamespace = 'org.freedesktop';
+        _resolvedNamespace = targetNamespace;
+
+        name = '$targetNamespace.StatusNotifierItem-$pid-1';
+        await _bus.requestName(name);
+        _requestedName = name;
+
+        _watcherRemoteObject = DBusRemoteObject(
+          _bus,
+          name: '$targetNamespace.StatusNotifierWatcher',
+          path: DBusObjectPath('/StatusNotifierWatcher'),
+        );
+
+        try {
+          await _bus.callMethod(
+            destination: '$targetNamespace.StatusNotifierWatcher',
+            path: DBusObjectPath('/StatusNotifierWatcher'),
+            interface: '$targetNamespace.StatusNotifierWatcher',
+            name: 'RegisterStatusNotifierItem',
+            values: [DBusString(name)],
+            replySignature: DBusSignature.empty,
+          );
+
+          _hostRegisteredSubscription = DBusSignalStream(
+            _bus,
+            sender: '$targetNamespace.StatusNotifierWatcher',
+            path: DBusObjectPath('/StatusNotifierWatcher'),
+            interface: '$targetNamespace.StatusNotifierWatcher',
+            name: 'StatusNotifierHostRegistered',
+            signature: DBusSignature.empty,
+          ).listen((signal) {
+            onHostRegisteredChanged?.call(true);
+          });
+
+          _logger.info('Resolved StatusNotifier backend: $targetNamespace (fallback)');
+        } catch (fallbackError) {
+          _logger.warning('Failed to register status notifier item with any watcher.');
+        }
+      } else {
+         _logger.warning('Failed to register status notifier item: $e');
+      }
     }
 
     try {
@@ -832,16 +872,11 @@ class StatusNotifierItemClient {
 
   /// Terminates all active connections and unregisters the item. If a client remains unclosed, the Dart process may not terminate.
   Future<void> close() async {
-    for (var sub in _hostRegisteredSubscriptions) {
-      await sub.cancel();
+    await _hostRegisteredSubscription?.cancel();
+    if (_requestedName != null) {
+      await _bus.releaseName(_requestedName!);
+      _requestedName = null;
     }
-    _hostRegisteredSubscriptions.clear();
-
-    for (var name in _requestedNames) {
-      await _bus.releaseName(name);
-    }
-    _requestedNames.clear();
-    _watcherRemoteObjects.clear();
 
     await _bus.unregisterObject(_menuObject);
     await _bus.unregisterObject(_notifierItemObject);
