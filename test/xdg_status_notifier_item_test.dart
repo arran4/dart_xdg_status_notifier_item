@@ -64,9 +64,7 @@ void main() {
       menu: DBusMenuItem(),
       bus: DBusClient(clientAddress),
     );
-    addTearDown(() async {
-
-    });
+    addTearDown(() async {});
     await client.connect();
   });
 
@@ -91,9 +89,7 @@ void main() {
       menu: DBusMenuItem(),
       bus: DBusClient(clientAddress),
     );
-    addTearDown(() async {
-
-    });
+    addTearDown(() async {});
     await client.connect();
   });
 
@@ -120,9 +116,7 @@ void main() {
       ),
       bus: DBusClient(clientAddress),
     );
-    addTearDown(() async {
-
-    });
+    addTearDown(() async {});
     await client.connect();
 
     expect(client.status, StatusNotifierItemStatus.active);
@@ -300,11 +294,10 @@ void main() {
 
     // Escaping test
     var original = '<b>Bold</b> & "Quotes"';
-    expect(escapeMarkup(original), '&lt;b&gt;Bold&lt;/b&gt; &amp; &quot;Quotes&quot;');
+    expect(escapeMarkup(original),
+        '&lt;b&gt;Bold&lt;/b&gt; &amp; &quot;Quotes&quot;');
 
     // Strip test
     expect(stripMarkup(original), 'Bold & "Quotes"');
-
-
   });
 }
