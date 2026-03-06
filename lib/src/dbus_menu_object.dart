@@ -88,7 +88,7 @@ enum DBusMenuStatus {
   normal,
 
   /// The item is notice.
-  notice
+  notice,
 }
 
 String _encodeDBusMenuStatus(DBusMenuStatus status) {
@@ -120,8 +120,10 @@ class DBusMenuObject extends DBusObject {
   set status(String value) {
     if (_status != value) {
       _status = value;
-      emitPropertiesChanged('com.canonical.dbusmenu',
-          changedProperties: {'Status': DBusString(_status)});
+      emitPropertiesChanged(
+        'com.canonical.dbusmenu',
+        changedProperties: {'Status': DBusString(_status)},
+      );
     }
   }
 
@@ -409,7 +411,7 @@ class DBusMenuObject extends DBusObject {
         'Status': DBusString(_status),
         'Version': DBusUint32(3),
         'TextDirection': DBusString('ltr'),
-      })
+      }),
     ]);
   }
 

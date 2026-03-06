@@ -98,8 +98,9 @@ void main() {
 
   test('property changes', () async {
     var server = DBusServer();
-    var clientAddress =
-        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+    var clientAddress = await server.listenAddress(
+      DBusAddress.unix(dir: Directory.systemTemp),
+    );
     addTearDown(() async {
       await server.close();
     });
@@ -111,15 +112,13 @@ void main() {
     });
 
     var client = StatusNotifierItemClient(
-        id: 'test',
-        backend: StatusNotifierItemBackend.spec,
-        menu: DBusMenuItem(children: [
-          DBusMenuItem(
-            label: 'Test',
-            status: DBusMenuStatus.normal,
-          )
-        ]),
-        bus: DBusClient(clientAddress));
+      id: 'test',
+      backend: StatusNotifierItemBackend.spec,
+      menu: DBusMenuItem(
+        children: [DBusMenuItem(label: 'Test', status: DBusMenuStatus.normal)],
+      ),
+      bus: DBusClient(clientAddress),
+    );
     addTearDown(() async {
       await client.close();
     });
@@ -133,8 +132,8 @@ void main() {
     expect(client.title, 'test');
     client.title = 'new test';
     expect(client.title, 'new test');
-  })
-  
+  });
+
   group('StatusNotifierItemClient actions', () {
     test('ContextMenu correctly parses coordinates', () async {
       int? resultX;
@@ -241,22 +240,36 @@ void main() {
     });
   });
 
-  test('Update DBus Menu item Status properties and manage state dynamically', () async {
-    var client = StatusNotifierItemClient(
-        id: 'test',
-        menu: DBusMenuItem());
+  test(
+    'Update DBus Menu item Status properties and manage state dynamically',
+    () async {
+      var client = StatusNotifierItemClient(id: 'test', menu: DBusMenuItem());
 
-    var object = client.menuObjectForTest;
+      var object = client.menuObjectForTest;
 
-    var response = await object.getProperty('com.canonical.dbusmenu', 'Status');
-    expect(response, isA<DBusMethodSuccessResponse>());
-    expect((response as DBusMethodSuccessResponse).returnValues[0].asVariant().asString(), 'normal');
+      var response = await object.getProperty(
+        'com.canonical.dbusmenu',
+        'Status',
+      );
+      expect(response, isA<DBusMethodSuccessResponse>());
+      expect(
+        (response as DBusMethodSuccessResponse).returnValues[0]
+            .asVariant()
+            .asString(),
+        'normal',
+      );
 
-    // Dynamically change menu status
-    client.menuStatus = 'notice';
+      // Dynamically change menu status
+      client.menuStatus = 'notice';
 
-    response = await object.getProperty('com.canonical.dbusmenu', 'Status');
-    expect(response, isA<DBusMethodSuccessResponse>());
-    expect((response as DBusMethodSuccessResponse).returnValues[0].asVariant().asString(), 'notice');
-  });
+      response = await object.getProperty('com.canonical.dbusmenu', 'Status');
+      expect(response, isA<DBusMethodSuccessResponse>());
+      expect(
+        (response as DBusMethodSuccessResponse).returnValues[0]
+            .asVariant()
+            .asString(),
+        'notice',
+      );
+    },
+  );
 }
