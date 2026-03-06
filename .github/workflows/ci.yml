@@ -28,36 +28,13 @@ on:
           - release-snapshot
           - release
           - monthly-maintenance
-      release_mode:
-        description: "Release mode"
-        required: false
-        default: "snapshot"
-        type: choice
-        options: [snapshot, release]
-      release_increment:
+      increment:
         description: "Version increment to apply when preparing release tags"
         required: false
         default: "patch"
         type: choice
-        options: [major, minor, patch, none]
-      prerelease_channel:
-        description: "Pre-release channel"
-        required: false
-        default: "none"
-        type: choice
-        options: [none, uat, test, rc, beta, alpha]
-      prerelease_number:
-        description: "Optional pre-release sequence number (for example: 1 in -rc.1)"
-        required: false
-        default: ""
-        type: string
-      increment_mode:
-        description: "Alternative increment control style (kagura-style)"
-        required: false
-        default: "release"
-        type: choice
-        options: [major, minor, patch, release, test]
-      release_version_override:
+        options: [major, minor, patch, manual]
+      manual_version:
         description: "Optional explicit release version (for example 2.4.0 or 2.4.0-uat.2)"
         required: false
         default: ""
@@ -180,7 +157,7 @@ jobs:
   dart-release-prep:
     name: Dart release prep
     needs: [route, discover, dart-analyze-test]
-    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.mode == 'release' || inputs.mode == 'release-snapshot') && needs.discover.outputs.has_dart == 'true' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && needs.discover.outputs.has_dart == 'true' && (inputs.mode == 'release' || inputs.mode == 'release-snapshot') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -189,8 +166,8 @@ jobs:
       - uses: dart-lang/setup-dart@v1
       - name: Compute version and tag
         env:
-          INCREMENT: ${{ inputs.release_increment }}
-          MANUAL_VERSION_INPUT: ${{ inputs.release_version_override }}
+          INCREMENT: ${{ inputs.increment }}
+          MANUAL_VERSION_INPUT: ${{ inputs.manual_version }}
         run: |
           set -euo pipefail
           PUBSPEC_VERSION=$(awk '/^version:/ {print $2}' pubspec.yaml)
@@ -200,10 +177,9 @@ jobs:
 
           CURRENT_VERSION=$(echo -e "$PUBSPEC_VERSION\n$HIGHEST_TAG" | sort -V | tail -n 1)
 
-          if [ -n "$MANUAL_VERSION_INPUT" ]; then
+          if [ "$INCREMENT" = "manual" ]; then
+            [ -z "$MANUAL_VERSION_INPUT" ] && { echo "manual_version required"; exit 1; }
             NEW_VERSION="$MANUAL_VERSION_INPUT"
-          elif [ "$INCREMENT" = "none" ]; then
-            NEW_VERSION="$CURRENT_VERSION"
           else
             IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
             case "$INCREMENT" in
@@ -213,21 +189,15 @@ jobs:
             esac
           fi
 
-          if [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
-            sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
-            git config user.name "google-labs-jules"
-            git config user.email "jules@google.com"
-            git checkout -b "release/v$NEW_VERSION"
-            git add pubspec.yaml
-            git commit -m "Bump version to $NEW_VERSION"
-            git tag "v$NEW_VERSION"
-            git push origin "v$NEW_VERSION"
-            git push origin "release/v$NEW_VERSION"
-
-            # Publish to pub.dev would happen here or via dart native publish action
-          else
-            echo "Version is the same, no need to bump."
-          fi
+          sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "release/v$NEW_VERSION"
+          git add pubspec.yaml
+          git commit -m "Bump version to $NEW_VERSION"
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
+          git push origin "release/v$NEW_VERSION"
 
   publish-dart:
     name: Publish Dart Package to pub.dev

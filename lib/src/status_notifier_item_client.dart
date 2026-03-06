@@ -381,7 +381,7 @@ class StatusNotifierItemClient {
   late final DBusMenuObject _menuObject;
   late final _StatusNotifierItemObject _notifierItemObject;
 
-  // FIXME: status enum
+
   /// The backend to use.
   final StatusNotifierItemBackend _backend;
 

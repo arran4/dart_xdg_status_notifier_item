@@ -48,3 +48,30 @@ void main() async {
 ## Contributing to xdg_status_notifier_item.dart
 
 We welcome contributions! 
+### Using dynamic properties
+
+You can change properties and signals dynamically, like the tool tip and the title:
+
+```dart
+client.title = 'New Title';
+client.toolTip = StatusNotifierToolTip('icon-name', 'New Tool Tip title', 'New Tool Tip body');
+client.status = StatusNotifierItemStatus.passive;
+```
+
+### Supported environments
+The library supports the FreeDesktop specification `org.freedesktop`, KDE `org.kde` and Ayatana `org.ayatana` implementation.
+You can specify the backend at initialization:
+
+```dart
+  client = StatusNotifierItemClient(
+      id: 'test-client',
+      backend: StatusNotifierItemBackend.ayatana,
+      iconName: 'computer-fail-symbolic',
+      menu: DBusMenuItem(children: [
+        DBusMenuItem(label: 'Hello'),
+        DBusMenuItem(label: 'World', enabled: false),
+        DBusMenuItem.separator(),
+        DBusMenuItem(
+            label: 'Quit', onClicked: () async => await client.close()),
+      ]));
+```
