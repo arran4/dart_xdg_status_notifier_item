@@ -146,7 +146,8 @@ void main(List<String> args) async {
 
   final iconPixmap = loadIconPixmap('example/icon.png');
   if (iconPixmap != null) {
-    print('Loaded icon from example/icon.png (${iconPixmap.width}x${iconPixmap.height})');
+    print(
+        'Loaded icon from example/icon.png (${iconPixmap.width}x${iconPixmap.height})');
   } else {
     print('Proceeding without PNG icon pixmap.');
   }
@@ -176,11 +177,12 @@ void main(List<String> args) async {
   };
 
   print('Connecting to D-Bus...');
-  try {  await client.connect(
-    requireWatcher: requireWatcher,
-    enableGnomeExtensionCheck: enableGnomeExtensionCheck,
-
-  );print('Connected successfully.');
+  try {
+    await client.connect(
+      requireWatcher: requireWatcher,
+      enableGnomeExtensionCheck: enableGnomeExtensionCheck,
+    );
+    print('Connected successfully.');
   } catch (e) {
     print('Failed to connect: $e');
   }

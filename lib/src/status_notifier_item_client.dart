@@ -676,7 +676,7 @@ class StatusNotifierItemClient {
   String _getNamespace() {
     switch (_backend) {
       case StatusNotifierItemBackend.spec:
-        return 'org.freedesktop.DBus';
+        return 'org.freedesktop';
       case StatusNotifierItemBackend.kde:
         return 'org.kde';
       case StatusNotifierItemBackend.ayatana:
