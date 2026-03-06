@@ -15,7 +15,7 @@ enum StatusNotifierItemBackend {
   kde,
 
   /// The Ayatana implementation (org.ayatana).
-  ayatana
+  ayatana,
 }
 
 /// Category for notifier items.
@@ -23,7 +23,7 @@ enum StatusNotifierItemCategory {
   applicationStatus,
   communications,
   systemServices,
-  hardware
+  hardware,
 }
 
 /// Status for notifier items.
@@ -33,13 +33,13 @@ const _categoryNames = {
   StatusNotifierItemCategory.applicationStatus: 'ApplicationStatus',
   StatusNotifierItemCategory.communications: 'Communications',
   StatusNotifierItemCategory.systemServices: 'SystemServices',
-  StatusNotifierItemCategory.hardware: 'Hardware'
+  StatusNotifierItemCategory.hardware: 'Hardware',
 };
 
 const _statusNames = {
   StatusNotifierItemStatus.passive: 'Passive',
   StatusNotifierItemStatus.active: 'Active',
-  StatusNotifierItemStatus.needsAttention: 'NeedsAttention'
+  StatusNotifierItemStatus.needsAttention: 'NeedsAttention',
 };
 
 String _encodeCategory(StatusNotifierItemCategory value) =>
@@ -87,7 +87,9 @@ class StatusNotifierToolTip {
     return DBusStruct([
       DBusString(iconName),
       DBusArray(
-          DBusSignature('(iiay)'), iconPixmap.map((e) => e.toDBusStruct())),
+        DBusSignature('(iiay)'),
+        iconPixmap.map((e) => e.toDBusStruct()),
+      ),
       DBusString(title),
       DBusString(body),
     ]);
@@ -115,102 +117,200 @@ class _StatusNotifierItemObject extends DBusObject {
   Future<void> Function(int x, int y)? onSecondaryActivate;
   Future<void> Function(int delta, String orientation)? onScroll;
 
-  _StatusNotifierItemObject(
-      {this.category = StatusNotifierItemCategory.applicationStatus,
-      required this.id,
-      this.title = '',
-      this.status = StatusNotifierItemStatus.active,
-      this.windowId = 0,
-      this.itemIsMenu = false,
-      this.iconName = '',
-      this.iconPixmap = const [],
-      this.overlayIconName = '',
-      this.overlayIconPixmap = const [],
-      this.attentionIconName = '',
-      this.attentionIconPixmap = const [],
-      this.attentionMovieName = '',
-      this.toolTip,
-      this.menu = DBusObjectPath.root,
-      this.onContextMenu,
-      this.onActivate,
-      this.onSecondaryActivate,
-      this.onScroll})
-      : super(DBusObjectPath('/StatusNotifierItem'));
+  _StatusNotifierItemObject({
+    this.category = StatusNotifierItemCategory.applicationStatus,
+    required this.id,
+    this.title = '',
+    this.status = StatusNotifierItemStatus.active,
+    this.windowId = 0,
+    this.itemIsMenu = false,
+    this.iconName = '',
+    this.iconPixmap = const [],
+    this.overlayIconName = '',
+    this.overlayIconPixmap = const [],
+    this.attentionIconName = '',
+    this.attentionIconPixmap = const [],
+    this.attentionMovieName = '',
+    this.toolTip,
+    this.menu = DBusObjectPath.root,
+    this.onContextMenu,
+    this.onActivate,
+    this.onSecondaryActivate,
+    this.onScroll,
+  }) : super(DBusObjectPath('/StatusNotifierItem'));
 
   @override
   List<DBusIntrospectInterface> introspect() {
     return [
-      DBusIntrospectInterface('org.freedesktop.StatusNotifierItem', methods: [
-        DBusIntrospectMethod('ContextMenu', args: [
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'x'),
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'y')
-        ]),
-        DBusIntrospectMethod('Activate', args: [
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'x'),
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'y')
-        ]),
-        DBusIntrospectMethod('SecondaryActivate', args: [
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'x'),
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'y')
-        ]),
-        DBusIntrospectMethod('Scroll', args: [
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'delta'),
-          DBusIntrospectArgument(DBusSignature('s'), DBusArgumentDirection.in_,
-              name: 'orientation')
-        ]),
-        DBusIntrospectMethod('ProvideXdgActivationToken', args: [
-          DBusIntrospectArgument(DBusSignature('s'), DBusArgumentDirection.in_,
-              name: 'token')
-        ])
-      ], signals: [
-        DBusIntrospectSignal('NewTitle'),
-        DBusIntrospectSignal('NewIcon'),
-        DBusIntrospectSignal('NewAttentionIcon'),
-        DBusIntrospectSignal('NewOverlayIcon'),
-        DBusIntrospectSignal('NewToolTip'),
-        DBusIntrospectSignal('NewStatus', args: [
-          DBusIntrospectArgument(DBusSignature('s'), DBusArgumentDirection.out,
-              name: 'status')
-        ])
-      ], properties: [
-        DBusIntrospectProperty('Category', DBusSignature('s'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('Id', DBusSignature('s'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('Title', DBusSignature('s'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('Status', DBusSignature('s'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('WindowId', DBusSignature('i'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('IconName', DBusSignature('s'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('IconPixmap', DBusSignature('a(iiay)'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('OverlayIconName', DBusSignature('s'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('OverlayIconPixmap', DBusSignature('a(iiay)'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('AttentionIconName', DBusSignature('s'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('AttentionIconPixmap', DBusSignature('a(iiay)'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('AttentionMovieName', DBusSignature('s'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('ToolTip', DBusSignature('(sa(iiay))'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('ItemIsMenu', DBusSignature('b'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('Menu', DBusSignature('o'),
-            access: DBusPropertyAccess.read)
-      ])
+      DBusIntrospectInterface(
+        'org.freedesktop.StatusNotifierItem',
+        methods: [
+          DBusIntrospectMethod(
+            'ContextMenu',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'x',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'y',
+              ),
+            ],
+          ),
+          DBusIntrospectMethod(
+            'Activate',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'x',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'y',
+              ),
+            ],
+          ),
+          DBusIntrospectMethod(
+            'SecondaryActivate',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'x',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'y',
+              ),
+            ],
+          ),
+          DBusIntrospectMethod(
+            'Scroll',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'delta',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('s'),
+                DBusArgumentDirection.in_,
+                name: 'orientation',
+              ),
+            ],
+          ),
+          DBusIntrospectMethod(
+            'ProvideXdgActivationToken',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('s'),
+                DBusArgumentDirection.in_,
+                name: 'token',
+              ),
+            ],
+          ),
+        ],
+        signals: [
+          DBusIntrospectSignal('NewTitle'),
+          DBusIntrospectSignal('NewIcon'),
+          DBusIntrospectSignal('NewAttentionIcon'),
+          DBusIntrospectSignal('NewOverlayIcon'),
+          DBusIntrospectSignal('NewToolTip'),
+          DBusIntrospectSignal(
+            'NewStatus',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('s'),
+                DBusArgumentDirection.out,
+                name: 'status',
+              ),
+            ],
+          ),
+        ],
+        properties: [
+          DBusIntrospectProperty(
+            'Category',
+            DBusSignature('s'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'Id',
+            DBusSignature('s'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'Title',
+            DBusSignature('s'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'Status',
+            DBusSignature('s'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'WindowId',
+            DBusSignature('i'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'IconName',
+            DBusSignature('s'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'IconPixmap',
+            DBusSignature('a(iiay)'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'OverlayIconName',
+            DBusSignature('s'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'OverlayIconPixmap',
+            DBusSignature('a(iiay)'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'AttentionIconName',
+            DBusSignature('s'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'AttentionIconPixmap',
+            DBusSignature('a(iiay)'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'AttentionMovieName',
+            DBusSignature('s'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'ToolTip',
+            DBusSignature('(sa(iiay))'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'ItemIsMenu',
+            DBusSignature('b'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'Menu',
+            DBusSignature('o'),
+            access: DBusPropertyAccess.read,
+          ),
+        ],
+      ),
     ];
   }
 
@@ -235,8 +335,9 @@ class _StatusNotifierItemObject extends DBusObject {
   }
 
   void emitNewStatus(StatusNotifierItemStatus newStatus) {
-    emitSignal('org.freedesktop.StatusNotifierItem', 'NewStatus',
-        [DBusString(_encodeStatus(newStatus))]);
+    emitSignal('org.freedesktop.StatusNotifierItem', 'NewStatus', [
+      DBusString(_encodeStatus(newStatus)),
+    ]);
   }
 
   @override
@@ -308,30 +409,44 @@ class _StatusNotifierItemObject extends DBusObject {
       case 'IconName':
         return DBusGetPropertyResponse(DBusString(iconName));
       case 'IconPixmap':
-        return DBusGetPropertyResponse(DBusArray(
-            DBusSignature('(iiay)'), iconPixmap.map((e) => e.toDBusStruct())));
+        return DBusGetPropertyResponse(
+          DBusArray(
+            DBusSignature('(iiay)'),
+            iconPixmap.map((e) => e.toDBusStruct()),
+          ),
+        );
       case 'OverlayIconName':
         return DBusGetPropertyResponse(DBusString(overlayIconName));
       case 'OverlayIconPixmap':
-        return DBusGetPropertyResponse(DBusArray(DBusSignature('(iiay)'),
-            overlayIconPixmap.map((e) => e.toDBusStruct())));
+        return DBusGetPropertyResponse(
+          DBusArray(
+            DBusSignature('(iiay)'),
+            overlayIconPixmap.map((e) => e.toDBusStruct()),
+          ),
+        );
       case 'AttentionIconName':
         return DBusGetPropertyResponse(DBusString(attentionIconName));
       case 'AttentionIconPixmap':
-        return DBusGetPropertyResponse(DBusArray(DBusSignature('(iiay)'),
-            attentionIconPixmap.map((e) => e.toDBusStruct())));
+        return DBusGetPropertyResponse(
+          DBusArray(
+            DBusSignature('(iiay)'),
+            attentionIconPixmap.map((e) => e.toDBusStruct()),
+          ),
+        );
       case 'AttentionMovieName':
         return DBusGetPropertyResponse(DBusString(attentionMovieName));
       case 'ToolTip':
         if (toolTip != null) {
           return DBusGetPropertyResponse(toolTip!.toDBusStruct());
         } else {
-          return DBusGetPropertyResponse(DBusStruct([
-            DBusString(''),
-            DBusArray(DBusSignature('(iiay)'), []),
-            DBusString(''),
-            DBusString('')
-          ]));
+          return DBusGetPropertyResponse(
+            DBusStruct([
+              DBusString(''),
+              DBusArray(DBusSignature('(iiay)'), []),
+              DBusString(''),
+              DBusString(''),
+            ]),
+          );
         }
       case 'ItemIsMenu':
         return DBusGetPropertyResponse(DBusBoolean(itemIsMenu));
@@ -352,23 +467,30 @@ class _StatusNotifierItemObject extends DBusObject {
       'WindowId': DBusInt32(windowId),
       'IconName': DBusString(iconName),
       'IconPixmap': DBusArray(
-          DBusSignature('(iiay)'), iconPixmap.map((e) => e.toDBusStruct())),
+        DBusSignature('(iiay)'),
+        iconPixmap.map((e) => e.toDBusStruct()),
+      ),
       'OverlayIconName': DBusString(overlayIconName),
-      'OverlayIconPixmap': DBusArray(DBusSignature('(iiay)'),
-          overlayIconPixmap.map((e) => e.toDBusStruct())),
+      'OverlayIconPixmap': DBusArray(
+        DBusSignature('(iiay)'),
+        overlayIconPixmap.map((e) => e.toDBusStruct()),
+      ),
       'AttentionIconName': DBusString(attentionIconName),
-      'AttentionIconPixmap': DBusArray(DBusSignature('(iiay)'),
-          attentionIconPixmap.map((e) => e.toDBusStruct())),
+      'AttentionIconPixmap': DBusArray(
+        DBusSignature('(iiay)'),
+        attentionIconPixmap.map((e) => e.toDBusStruct()),
+      ),
       'AttentionMovieName': DBusString(attentionMovieName),
-      'ToolTip': toolTip?.toDBusStruct() ??
+      'ToolTip':
+          toolTip?.toDBusStruct() ??
           DBusStruct([
             DBusString(''),
             DBusArray(DBusSignature('(iiay)'), []),
             DBusString(''),
-            DBusString('')
+            DBusString(''),
           ]),
       'ItemIsMenu': DBusBoolean(itemIsMenu),
-      'Menu': menu
+      'Menu': menu,
     });
   }
 }
@@ -512,53 +634,54 @@ class StatusNotifierItemClient {
   }
 
   /// Creates a new status notifier item client. If [bus] is provided connect to the given D-Bus server.
-  StatusNotifierItemClient(
-      {required String id,
-      StatusNotifierItemBackend backend = StatusNotifierItemBackend.spec,
-      StatusNotifierItemCategory category =
-          StatusNotifierItemCategory.applicationStatus,
-      String title = '',
-      StatusNotifierItemStatus status = StatusNotifierItemStatus.active,
-      int windowId = 0,
-      bool itemIsMenu = false,
-      String iconName = '',
-      List<StatusNotifierIconPixmap> iconPixmap = const [],
-      String overlayIconName = '',
-      List<StatusNotifierIconPixmap> overlayIconPixmap = const [],
-      String attentionIconName = '',
-      List<StatusNotifierIconPixmap> attentionIconPixmap = const [],
-      String attentionMovieName = '',
-      StatusNotifierToolTip? toolTip,
-      required DBusMenuItem menu,
-      Future<void> Function(int x, int y)? onContextMenu,
-      Future<void> Function(int x, int y)? onActivate,
-      Future<void> Function(int x, int y)? onSecondaryActivate,
-      Future<void> Function(int delta, String orientation)? onScroll,
-      DBusClient? bus})
-      : _backend = backend,
-        _bus = bus ?? DBusClient.session(),
-        _closeBus = bus == null {
+  StatusNotifierItemClient({
+    required String id,
+    StatusNotifierItemBackend backend = StatusNotifierItemBackend.spec,
+    StatusNotifierItemCategory category =
+        StatusNotifierItemCategory.applicationStatus,
+    String title = '',
+    StatusNotifierItemStatus status = StatusNotifierItemStatus.active,
+    int windowId = 0,
+    bool itemIsMenu = false,
+    String iconName = '',
+    List<StatusNotifierIconPixmap> iconPixmap = const [],
+    String overlayIconName = '',
+    List<StatusNotifierIconPixmap> overlayIconPixmap = const [],
+    String attentionIconName = '',
+    List<StatusNotifierIconPixmap> attentionIconPixmap = const [],
+    String attentionMovieName = '',
+    StatusNotifierToolTip? toolTip,
+    required DBusMenuItem menu,
+    Future<void> Function(int x, int y)? onContextMenu,
+    Future<void> Function(int x, int y)? onActivate,
+    Future<void> Function(int x, int y)? onSecondaryActivate,
+    Future<void> Function(int delta, String orientation)? onScroll,
+    DBusClient? bus,
+  }) : _backend = backend,
+       _bus = bus ?? DBusClient.session(),
+       _closeBus = bus == null {
     _menuObject = DBusMenuObject(DBusObjectPath('/Menu'), menu);
     _notifierItemObject = _StatusNotifierItemObject(
-        id: id,
-        category: category,
-        title: title,
-        status: status,
-        windowId: windowId,
-        itemIsMenu: itemIsMenu,
-        iconName: iconName,
-        iconPixmap: iconPixmap,
-        overlayIconName: overlayIconName,
-        overlayIconPixmap: overlayIconPixmap,
-        attentionIconName: attentionIconName,
-        attentionIconPixmap: attentionIconPixmap,
-        attentionMovieName: attentionMovieName,
-        toolTip: toolTip,
-        menu: _menuObject.path,
-        onContextMenu: onContextMenu,
-        onActivate: onActivate,
-        onSecondaryActivate: onSecondaryActivate,
-        onScroll: onScroll);
+      id: id,
+      category: category,
+      title: title,
+      status: status,
+      windowId: windowId,
+      itemIsMenu: itemIsMenu,
+      iconName: iconName,
+      iconPixmap: iconPixmap,
+      overlayIconName: overlayIconName,
+      overlayIconPixmap: overlayIconPixmap,
+      attentionIconName: attentionIconName,
+      attentionIconPixmap: attentionIconPixmap,
+      attentionMovieName: attentionMovieName,
+      toolTip: toolTip,
+      menu: _menuObject.path,
+      onContextMenu: onContextMenu,
+      onActivate: onActivate,
+      onSecondaryActivate: onSecondaryActivate,
+      onScroll: onScroll,
+    );
   }
 
   String? _requestedName;
@@ -624,36 +747,42 @@ class StatusNotifierItemClient {
     // Put the item on the bus.
     await _bus.registerObject(_notifierItemObject);
 
-    _watcherRemoteObject = DBusRemoteObject(_bus,
-        name: '$namespace.StatusNotifierWatcher',
-        path: DBusObjectPath('/StatusNotifierWatcher'));
+    _watcherRemoteObject = DBusRemoteObject(
+      _bus,
+      name: '$namespace.StatusNotifierWatcher',
+      path: DBusObjectPath('/StatusNotifierWatcher'),
+    );
 
     // Register the item.
     await _bus.callMethod(
-        destination: '$namespace.StatusNotifierWatcher',
-        path: DBusObjectPath('/StatusNotifierWatcher'),
-        interface: '$namespace.StatusNotifierWatcher',
-        name: 'RegisterStatusNotifierItem',
-        values: [DBusString(name)],
-        replySignature: DBusSignature.empty);
+      destination: '$namespace.StatusNotifierWatcher',
+      path: DBusObjectPath('/StatusNotifierWatcher'),
+      interface: '$namespace.StatusNotifierWatcher',
+      name: 'RegisterStatusNotifierItem',
+      values: [DBusString(name)],
+      replySignature: DBusSignature.empty,
+    );
 
     // Listen for host registered signal
-    _hostRegisteredSubscription = DBusSignalStream(_bus,
-            sender: '$namespace.StatusNotifierWatcher',
-            path: DBusObjectPath('/StatusNotifierWatcher'),
-            interface: '$namespace.StatusNotifierWatcher',
-            name: 'StatusNotifierHostRegistered',
-            signature: DBusSignature.empty)
-        .listen((signal) {
-      onHostRegisteredChanged?.call(true);
-    });
+    _hostRegisteredSubscription =
+        DBusSignalStream(
+          _bus,
+          sender: '$namespace.StatusNotifierWatcher',
+          path: DBusObjectPath('/StatusNotifierWatcher'),
+          interface: '$namespace.StatusNotifierWatcher',
+          name: 'StatusNotifierHostRegistered',
+          signature: DBusSignature.empty,
+        ).listen((signal) {
+          onHostRegisteredChanged?.call(true);
+        });
 
     try {
       var hostReg = await isHostRegistered;
       _logger.info('IsStatusNotifierHostRegistered: $hostReg');
     } catch (e) {
-      _logger
-          .warning('Failed to get IsStatusNotifierHostRegistered property: $e');
+      _logger.warning(
+        'Failed to get IsStatusNotifierHostRegistered property: $e',
+      );
     }
   }
 

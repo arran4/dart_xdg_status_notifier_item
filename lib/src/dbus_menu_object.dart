@@ -27,52 +27,57 @@ class DBusMenuItem {
   final Future<void> Function()? onClicked;
 
   /// Creates a new menu item.
-  DBusMenuItem(
-      {this.type,
-      this.enabled,
-      this.visible,
-      this.label,
-      this.iconName,
-      this.iconData,
-      this.toggleState,
-      this.toggleType,
-      this.children = const [],
-      this.onAboutToShow,
-      this.onOpened,
-      this.onClosed,
-      this.onClicked});
+  DBusMenuItem({
+    this.type,
+    this.enabled,
+    this.visible,
+    this.label,
+    this.iconName,
+    this.iconData,
+    this.toggleState,
+    this.toggleType,
+    this.children = const [],
+    this.onAboutToShow,
+    this.onOpened,
+    this.onClosed,
+    this.onClicked,
+  });
 
   /// Creates a new separator menu item.
   DBusMenuItem.separator({bool visible = true})
-      : this(type: 'separator', visible: visible);
+    : this(type: 'separator', visible: visible);
 
   // Creates a new checkmark menu item. If [state] is true the item is checked.
-  DBusMenuItem.checkmark(String label,
-      {bool visible = true,
-      bool enabled = true,
-      bool state = false,
-      Future<void> Function()? onClicked})
-      : this(
-            visible: visible,
-            enabled: enabled,
-            label: label,
-            toggleType: 'checkmark',
-            toggleState: state ? 1 : 0,
-            onClicked: onClicked);
+  DBusMenuItem.checkmark(
+    String label, {
+    bool visible = true,
+    bool enabled = true,
+    bool state = false,
+    Future<void> Function()? onClicked,
+  }) : this(
+         visible: visible,
+         enabled: enabled,
+         label: label,
+         toggleType: 'checkmark',
+         toggleState: state ? 1 : 0,
+         onClicked: onClicked,
+       );
 
   // Creates a new radio menu item. If [state] is true the item is active.
-  DBusMenuItem.radio(String label,
-      {bool visible = true,
-      bool enabled = true,
-      bool state = false,
-      Future<void> Function()? onClicked})
-      : this(
-            visible: visible,
-            enabled: enabled,
-            label: label,
-            toggleType: 'radio',
-            toggleState: state ? 1 : 0,
-            onClicked: onClicked);
+  DBusMenuItem.radio(
+    String label, {
+    bool visible = true,
+    bool enabled = true,
+    bool state = false,
+    Future<void> Function()? onClicked,
+  }) : this(
+         visible: visible,
+         enabled: enabled,
+         label: label,
+         toggleType: 'radio',
+         toggleState: state ? 1 : 0,
+         onClicked: onClicked,
+       );
 }
 
 class DBusMenuObject extends DBusObject {
@@ -92,7 +97,11 @@ class DBusMenuObject extends DBusObject {
     var updatedProperties = <DBusValue>[];
     var removedProperties = <DBusValue>[];
     _makeMenuItemPropertiesUpdated(
-        this.menu, menu, updatedProperties, removedProperties);
+      this.menu,
+      menu,
+      updatedProperties,
+      removedProperties,
+    );
 
     // Replace old menu.
     _items.clear();
@@ -102,131 +111,257 @@ class DBusMenuObject extends DBusObject {
 
     await emitSignal('com.canonical.dbusmenu', 'ItemsPropertiesUpdated', [
       DBusArray(DBusSignature('(ia{sv})'), updatedProperties),
-      DBusArray(DBusSignature('(ias)'), removedProperties)
+      DBusArray(DBusSignature('(ias)'), removedProperties),
     ]);
 
     // Emit LayoutUpdated since the underlying tree structure might have fundamentally changed.
     await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
       DBusUint32(1), // revision
-      DBusInt32(0) // parent id (root)
+      DBusInt32(0), // parent id (root)
     ]);
   }
 
   void _makeMenuItemPropertiesUpdated(
-      DBusMenuItem originalItem,
-      DBusMenuItem newItem,
-      List<DBusValue> allUpdatedProperties,
-      List<DBusValue> allRemovedProperties) {
+    DBusMenuItem originalItem,
+    DBusMenuItem newItem,
+    List<DBusValue> allUpdatedProperties,
+    List<DBusValue> allRemovedProperties,
+  ) {
     var id = _idsByItem[originalItem]!;
     var originalProperties = _makeMenuItemProperties(originalItem);
     var newProperties = _makeMenuItemProperties(newItem);
-    var updatedProperties =
-        _getUpdatedProperties(originalProperties, newProperties);
+    var updatedProperties = _getUpdatedProperties(
+      originalProperties,
+      newProperties,
+    );
     if (updatedProperties.isNotEmpty) {
-      allUpdatedProperties.add(DBusStruct(
-          [DBusInt32(id), DBusDict.stringVariant(updatedProperties)]));
+      allUpdatedProperties.add(
+        DBusStruct([DBusInt32(id), DBusDict.stringVariant(updatedProperties)]),
+      );
     }
-    var removedProperties =
-        _getRemovedProperties(originalProperties, newProperties);
+    var removedProperties = _getRemovedProperties(
+      originalProperties,
+      newProperties,
+    );
     if (removedProperties.isNotEmpty) {
       allRemovedProperties.add(
-          DBusStruct([DBusInt32(id), DBusArray.string(removedProperties)]));
+        DBusStruct([DBusInt32(id), DBusArray.string(removedProperties)]),
+      );
     }
 
     assert(originalItem.children.length == newItem.children.length);
     for (var i = 0; i < originalItem.children.length; i++) {
-      _makeMenuItemPropertiesUpdated(originalItem.children[i],
-          newItem.children[i], allUpdatedProperties, allRemovedProperties);
+      _makeMenuItemPropertiesUpdated(
+        originalItem.children[i],
+        newItem.children[i],
+        allUpdatedProperties,
+        allRemovedProperties,
+      );
     }
   }
 
   @override
   List<DBusIntrospectInterface> introspect() {
     return [
-      DBusIntrospectInterface('com.canonical.dbusmenu', methods: [
-        DBusIntrospectMethod('AboutToShow', args: [
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'id'),
-          DBusIntrospectArgument(DBusSignature('b'), DBusArgumentDirection.out,
-              name: 'needsUpdate')
-        ]),
-        DBusIntrospectMethod('AboutToShowGroup', args: [
-          DBusIntrospectArgument(DBusSignature('ai'), DBusArgumentDirection.in_,
-              name: 'ids'),
-          DBusIntrospectArgument(DBusSignature('ai'), DBusArgumentDirection.out,
-              name: 'updatesNeeded'),
-          DBusIntrospectArgument(DBusSignature('ai'), DBusArgumentDirection.out,
-              name: 'idErrors')
-        ]),
-        DBusIntrospectMethod('Event', args: [
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'id'),
-          DBusIntrospectArgument(DBusSignature('s'), DBusArgumentDirection.in_,
-              name: 'eventId'),
-          DBusIntrospectArgument(DBusSignature('v'), DBusArgumentDirection.in_,
-              name: 'data'),
-          DBusIntrospectArgument(DBusSignature('u'), DBusArgumentDirection.in_,
-              name: 'timestamp')
-        ]),
-        DBusIntrospectMethod('EventGroup', args: [
-          DBusIntrospectArgument(
-              DBusSignature('a(isvu)'), DBusArgumentDirection.in_,
-              name: 'events'),
-          DBusIntrospectArgument(DBusSignature('ai'), DBusArgumentDirection.out,
-              name: 'idErrors')
-        ]),
-        DBusIntrospectMethod('GetLayout', args: [
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'parentId'),
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'recursionDepth'),
-          DBusIntrospectArgument(DBusSignature('as'), DBusArgumentDirection.in_,
-              name: 'propertyNames'),
-          DBusIntrospectArgument(DBusSignature('u'), DBusArgumentDirection.out,
-              name: 'revision'),
-          DBusIntrospectArgument(
-              DBusSignature('(ia{sv}av)'), DBusArgumentDirection.out,
-              name: 'layout')
-        ]),
-        DBusIntrospectMethod('GetProperty', args: [
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.in_,
-              name: 'id'),
-          DBusIntrospectArgument(DBusSignature('s'), DBusArgumentDirection.in_,
-              name: 'name'),
-          DBusIntrospectArgument(DBusSignature('v'), DBusArgumentDirection.out,
-              name: 'value')
-        ])
-      ], signals: [
-        DBusIntrospectSignal('ItemsPropertiesUpdated', args: [
-          DBusIntrospectArgument(
-              DBusSignature('a(ia{sv})'), DBusArgumentDirection.out,
-              name: 'updatedProps'),
-          DBusIntrospectArgument(
-              DBusSignature('a(ias)'), DBusArgumentDirection.out,
-              name: 'removedProps')
-        ]),
-        DBusIntrospectSignal('LayoutUpdated', args: [
-          DBusIntrospectArgument(DBusSignature('u'), DBusArgumentDirection.out,
-              name: 'revision'),
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.out,
-              name: 'parent')
-        ]),
-        DBusIntrospectSignal('ItemActivationRequested', args: [
-          DBusIntrospectArgument(DBusSignature('i'), DBusArgumentDirection.out,
-              name: 'id'),
-          DBusIntrospectArgument(DBusSignature('u'), DBusArgumentDirection.out,
-              name: 'timestamp')
-        ]),
-      ], properties: [
-        DBusIntrospectProperty('IconThemePath', DBusSignature('as'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('Status', DBusSignature('s'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('TextDirection', DBusSignature('s'),
-            access: DBusPropertyAccess.read),
-        DBusIntrospectProperty('Version', DBusSignature('u'),
-            access: DBusPropertyAccess.read)
-      ])
+      DBusIntrospectInterface(
+        'com.canonical.dbusmenu',
+        methods: [
+          DBusIntrospectMethod(
+            'AboutToShow',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'id',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('b'),
+                DBusArgumentDirection.out,
+                name: 'needsUpdate',
+              ),
+            ],
+          ),
+          DBusIntrospectMethod(
+            'AboutToShowGroup',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('ai'),
+                DBusArgumentDirection.in_,
+                name: 'ids',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('ai'),
+                DBusArgumentDirection.out,
+                name: 'updatesNeeded',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('ai'),
+                DBusArgumentDirection.out,
+                name: 'idErrors',
+              ),
+            ],
+          ),
+          DBusIntrospectMethod(
+            'Event',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'id',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('s'),
+                DBusArgumentDirection.in_,
+                name: 'eventId',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('v'),
+                DBusArgumentDirection.in_,
+                name: 'data',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('u'),
+                DBusArgumentDirection.in_,
+                name: 'timestamp',
+              ),
+            ],
+          ),
+          DBusIntrospectMethod(
+            'EventGroup',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('a(isvu)'),
+                DBusArgumentDirection.in_,
+                name: 'events',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('ai'),
+                DBusArgumentDirection.out,
+                name: 'idErrors',
+              ),
+            ],
+          ),
+          DBusIntrospectMethod(
+            'GetLayout',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'parentId',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'recursionDepth',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('as'),
+                DBusArgumentDirection.in_,
+                name: 'propertyNames',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('u'),
+                DBusArgumentDirection.out,
+                name: 'revision',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('(ia{sv}av)'),
+                DBusArgumentDirection.out,
+                name: 'layout',
+              ),
+            ],
+          ),
+          DBusIntrospectMethod(
+            'GetProperty',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.in_,
+                name: 'id',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('s'),
+                DBusArgumentDirection.in_,
+                name: 'name',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('v'),
+                DBusArgumentDirection.out,
+                name: 'value',
+              ),
+            ],
+          ),
+        ],
+        signals: [
+          DBusIntrospectSignal(
+            'ItemsPropertiesUpdated',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('a(ia{sv})'),
+                DBusArgumentDirection.out,
+                name: 'updatedProps',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('a(ias)'),
+                DBusArgumentDirection.out,
+                name: 'removedProps',
+              ),
+            ],
+          ),
+          DBusIntrospectSignal(
+            'LayoutUpdated',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('u'),
+                DBusArgumentDirection.out,
+                name: 'revision',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.out,
+                name: 'parent',
+              ),
+            ],
+          ),
+          DBusIntrospectSignal(
+            'ItemActivationRequested',
+            args: [
+              DBusIntrospectArgument(
+                DBusSignature('i'),
+                DBusArgumentDirection.out,
+                name: 'id',
+              ),
+              DBusIntrospectArgument(
+                DBusSignature('u'),
+                DBusArgumentDirection.out,
+                name: 'timestamp',
+              ),
+            ],
+          ),
+        ],
+        properties: [
+          DBusIntrospectProperty(
+            'IconThemePath',
+            DBusSignature('as'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'Status',
+            DBusSignature('s'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'TextDirection',
+            DBusSignature('s'),
+            access: DBusPropertyAccess.read,
+          ),
+          DBusIntrospectProperty(
+            'Version',
+            DBusSignature('u'),
+            access: DBusPropertyAccess.read,
+          ),
+        ],
+      ),
     ];
   }
 
@@ -251,7 +386,7 @@ class DBusMenuObject extends DBusObject {
           // We signal the layout update to allow the host to re-read the layout.
           await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
             DBusUint32(1), // revision
-            DBusInt32(id) // parent id
+            DBusInt32(id), // parent id
           ]);
         }
         return DBusMethodSuccessResponse([DBusBoolean(needsUpdate)]);
@@ -262,23 +397,27 @@ class DBusMenuObject extends DBusObject {
         var ids = methodCall.values[0].asInt32Array();
         var updatesNeeded = <int>[];
         var idErrors = <int>[];
-        await Future.wait(ids.map((id) async {
-          var item = _getItem(id);
-          if (item == null) {
-            idErrors.add(id);
-          } else {
-            var needsUpdate = await item.onAboutToShow?.call() ?? false;
-            if (needsUpdate) {
-              updatesNeeded.add(id);
-              await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
-                DBusUint32(1), // revision
-                DBusInt32(id) // parent id
-              ]);
+        await Future.wait(
+          ids.map((id) async {
+            var item = _getItem(id);
+            if (item == null) {
+              idErrors.add(id);
+            } else {
+              var needsUpdate = await item.onAboutToShow?.call() ?? false;
+              if (needsUpdate) {
+                updatesNeeded.add(id);
+                await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
+                  DBusUint32(1), // revision
+                  DBusInt32(id), // parent id
+                ]);
+              }
             }
-          }
-        }));
-        return DBusMethodSuccessResponse(
-            [DBusArray.int32(updatesNeeded), DBusArray.int32(idErrors)]);
+          }),
+        );
+        return DBusMethodSuccessResponse([
+          DBusArray.int32(updatesNeeded),
+          DBusArray.int32(idErrors),
+        ]);
       case 'Event':
         if (methodCall.signature != DBusSignature('isvu')) {
           return DBusMethodErrorResponse.invalidArgs();
@@ -319,14 +458,15 @@ class DBusMenuObject extends DBusObject {
         }
         var parentId = methodCall.values[0].asInt32();
         var recursionDepth = methodCall.values[1].asInt32();
-        //var propertyNames = methodCall.values[2].asStringArray();
         var item = _getItem(parentId);
         if (item == null) {
           return DBusMethodErrorResponse('com.canonical.dbusmenu.UnknownId');
         }
         var revision = 1;
-        return DBusMethodSuccessResponse(
-            [DBusUint32(revision), _makeMenuItem(item, recursionDepth)]);
+        return DBusMethodSuccessResponse([
+          DBusUint32(revision),
+          _makeMenuItem(item, recursionDepth),
+        ]);
       case 'GetProperty':
         if (methodCall.signature != DBusSignature('is')) {
           return DBusMethodErrorResponse.invalidArgs();
@@ -341,7 +481,8 @@ class DBusMenuObject extends DBusObject {
         var property = properties[name];
         if (property == null) {
           return DBusMethodErrorResponse(
-              'com.canonical.dbusmenu.UnknownProperty');
+            'com.canonical.dbusmenu.UnknownProperty',
+          );
         }
         return DBusMethodSuccessResponse([DBusVariant(property)]);
       default:
@@ -392,17 +533,23 @@ class DBusMenuObject extends DBusObject {
 
   // Returns properties in [newProperties] that are new or have changed values from [originalProperties].
   static Map<String, DBusValue> _getUpdatedProperties(
-      Map<String, DBusValue> originalProperties,
-      Map<String, DBusValue> newProperties) {
-    return Map.fromEntries(newProperties.entries.where((entry) =>
-        !originalProperties.containsKey(entry.key) ||
-        originalProperties[entry.key] != entry.value));
+    Map<String, DBusValue> originalProperties,
+    Map<String, DBusValue> newProperties,
+  ) {
+    return Map.fromEntries(
+      newProperties.entries.where(
+        (entry) =>
+            !originalProperties.containsKey(entry.key) ||
+            originalProperties[entry.key] != entry.value,
+      ),
+    );
   }
 
   // Returns names of properties that are in [originalProperties] but not in [newProperties].
   static List<String> _getRemovedProperties(
-      Map<String, DBusValue> originalProperties,
-      Map<String, DBusValue> newProperties) {
+    Map<String, DBusValue> originalProperties,
+    Map<String, DBusValue> newProperties,
+  ) {
     return originalProperties.keys
         .where((name) => !newProperties.containsKey(name))
         .toList();
@@ -412,8 +559,9 @@ class DBusMenuObject extends DBusObject {
   DBusValue _makeMenuItem(DBusMenuItem item, int recursionDepth) {
     List<DBusValue> children = [];
     if (recursionDepth != 0) {
-      var nextRecursionDepth =
-          recursionDepth < 0 ? recursionDepth : recursionDepth - 1;
+      var nextRecursionDepth = recursionDepth < 0
+          ? recursionDepth
+          : recursionDepth - 1;
       for (var child in item.children) {
         children.add(_makeMenuItem(child, nextRecursionDepth));
       }
@@ -421,7 +569,7 @@ class DBusMenuObject extends DBusObject {
     return DBusStruct([
       DBusInt32(_idsByItem[item] ?? -1),
       DBusDict.stringVariant(_makeMenuItemProperties(item)),
-      DBusArray.variant(children)
+      DBusArray.variant(children),
     ]);
   }
 
@@ -432,7 +580,11 @@ class DBusMenuObject extends DBusObject {
 
   // Handle a received event.
   Future<void> _handleEvent(
-      DBusMenuItem item, String eventId, DBusValue data, int timestamp) async {
+    DBusMenuItem item,
+    String eventId,
+    DBusValue data,
+    int timestamp,
+  ) async {
     switch (eventId) {
       case 'opened':
         await item.onOpened?.call();
