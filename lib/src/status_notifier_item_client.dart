@@ -741,8 +741,10 @@ class StatusNotifierItemClient {
             Platform.environment['XDG_CURRENT_DESKTOP']?.toLowerCase();
         if (desktop != null && desktop.contains('gnome')) {
           try {
-            var result =
-                await Process.run('gnome-extensions', ['list', '--enabled']);
+            var result = await Process.run('gnome-extensions', [
+              'list',
+              '--enabled',
+            ]);
             if (result.exitCode == 0) {
               var out = result.stdout.toString().toLowerCase();
               if (!out.contains('appindicatorsupport') &&

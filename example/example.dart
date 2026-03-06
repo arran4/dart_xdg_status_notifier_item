@@ -83,10 +83,31 @@ void main(List<String> args) async {
   final requireWatcher = args.contains('--require-watcher');
   final enableGnomeExtensionCheck = !args.contains('--disable-gnome-check');
 
+  var backend = StatusNotifierItemBackend.spec;
+  for (final arg in args) {
+    if (arg.startsWith('--backend=')) {
+      final value = arg.substring('--backend='.length);
+      switch (value) {
+        case 'kde':
+          backend = StatusNotifierItemBackend.kde;
+          break;
+        case 'ayatana':
+          backend = StatusNotifierItemBackend.ayatana;
+          break;
+        case 'spec':
+          backend = StatusNotifierItemBackend.spec;
+          break;
+        default:
+          print('Unknown backend: $value');
+      }
+    }
+  }
+
   client = StatusNotifierItemClient(
     id: 'dart-test',
     iconName: 'computer-fail-symbolic',
     menu: buildMenu(),
+    backend: backend,
   );
   await client.connect(
     requireWatcher: requireWatcher,
