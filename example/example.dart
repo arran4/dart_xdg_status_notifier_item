@@ -136,12 +136,14 @@ void main(List<String> args) async {
   final iconByName = args.contains('--icon-by-name');
   final enableGnomeExtensionCheck = !args.contains('--disable-gnome-check');
 
-  // Choose backend based on arguments, defaulting to KDE for testing
+  // Choose backend based on arguments
   final backend = args.contains('--ayatana')
       ? StatusNotifierItemBackend.ayatana
       : args.contains('--kde')
           ? StatusNotifierItemBackend.kde
-          : StatusNotifierItemBackend.spec;
+          : args.contains('--spec')
+              ? StatusNotifierItemBackend.spec
+              : StatusNotifierItemBackend.auto;
 
   print('Using backend: $backend');
 
@@ -181,7 +183,6 @@ void main(List<String> args) async {
   try {
     await client.connect(
       requireWatcher: requireWatcher,
-      enableGnomeExtensionCheck: enableGnomeExtensionCheck,
     );
     print('Connected successfully.');
   } catch (e) {
