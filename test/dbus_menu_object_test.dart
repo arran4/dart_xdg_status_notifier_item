@@ -55,4 +55,30 @@ void main() {
 
     expect(response, isA<DBusMethodSuccessResponse>());
   });
+
+  test('DBusMenuObject.update throws ArgumentError if children count changes', () async {
+    final rootMenu = DBusMenuItem(
+      children: [
+        DBusMenuItem(label: 'Item 1'), // Item 1
+      ],
+    );
+
+    final menuObject = DBusMenuObject(DBusObjectPath('/MenuBar'), rootMenu);
+
+    final updatedMenu = DBusMenuItem(
+      children: [
+        DBusMenuItem(label: 'Item 1 updated'),
+        DBusMenuItem(label: 'Item 2 added'),
+      ],
+    );
+
+    expect(
+      () => menuObject.update(updatedMenu),
+      throwsA(isA<ArgumentError>().having(
+        (e) => e.message,
+        'message',
+        'Updated menu must have the same number of items as the previous menu.',
+      )),
+    );
+  });
 }
