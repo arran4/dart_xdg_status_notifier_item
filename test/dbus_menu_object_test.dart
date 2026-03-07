@@ -56,8 +56,7 @@ void main() {
     expect(response, isA<DBusMethodSuccessResponse>());
   });
 
-
-   test('DBusMenuObject EventGroup parses struct correctly', () async {
+  test('DBusMenuObject EventGroup parses struct correctly', () async {
     final rootMenu = DBusMenuItem(
       children: [
         DBusMenuItem(label: 'Item 1'), // Item 1
@@ -66,7 +65,7 @@ void main() {
 
     final menuObject = DBusMenuObject(DBusObjectPath('/MenuBar'), rootMenu);
 
-     // Call EventGroup with an in-bounds id (id = 1).
+    // Call EventGroup with an in-bounds id (id = 1).
     final methodCall = DBusMethodCall(
       sender: 'org.freedesktop.DBus',
       interface: 'com.canonical.dbusmenu',
@@ -78,8 +77,8 @@ void main() {
             DBusString('clicked'), // eventId
             DBusVariant(DBusString('')), // data
             DBusUint32(0), // timestamp
-          ])
-        ])
+          ]),
+        ]),
       ],
     );
 
@@ -92,30 +91,34 @@ void main() {
     final idErrors = successResponse.values[0].asInt32Array().toList();
     expect(idErrors, isEmpty);
   });
-}
 
-   test('DBusMenuObject.update throws ArgumentError if children count changes', () async {
-    final rootMenu = DBusMenuItem(
-      children: [
-        DBusMenuItem(label: 'Item 1'), // Item 1
-      ],
-    );
+  test(
+    'DBusMenuObject.update throws ArgumentError if children count changes',
+    () async {
+      final rootMenu = DBusMenuItem(
+        children: [
+          DBusMenuItem(label: 'Item 1'), // Item 1
+        ],
+      );
 
-    final menuObject = DBusMenuObject(DBusObjectPath('/MenuBar'), rootMenu);
-    final updatedMenu = DBusMenuItem(
-      children: [
-        DBusMenuItem(label: 'Item 1 updated'),
-        DBusMenuItem(label: 'Item 2 added'),
-      ],
-    );
+      final menuObject = DBusMenuObject(DBusObjectPath('/MenuBar'), rootMenu);
+      final updatedMenu = DBusMenuItem(
+        children: [
+          DBusMenuItem(label: 'Item 1 updated'),
+          DBusMenuItem(label: 'Item 2 added'),
+        ],
+      );
 
-    expect(
-      () => menuObject.update(updatedMenu),
-      throwsA(isA<ArgumentError>().having(
-        (e) => e.message,
-        'message',
-        'Updated menu must have the same number of items as the previous menu.',
-      )),
-    );
-  });
+      expect(
+        () => menuObject.update(updatedMenu),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            'Updated menu must have the same number of items as the previous menu.',
+          ),
+        ),
+      );
+    },
+  );
 }
