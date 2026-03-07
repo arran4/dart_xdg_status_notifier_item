@@ -183,6 +183,7 @@ void main(List<String> args) async {
   try {
     await client.connect(
       requireWatcher: requireWatcher,
+      enableGnomeExtensionCheck: enableGnomeExtensionCheck,
     );
     print('Connected successfully.');
   } catch (e) {

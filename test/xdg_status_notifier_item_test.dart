@@ -29,16 +29,18 @@ class MockNotifierWatcherObject extends DBusObject {
 
 class MockDBusObject extends DBusObject {
   final String namespace;
-  MockDBusObject(this.namespace) : super(DBusObjectPath('/org/freedesktop/DBus'));
+  MockDBusObject(this.namespace)
+      : super(DBusObjectPath('/org/freedesktop/DBus'));
 
   @override
   Future<DBusMethodResponse> handleMethodCall(DBusMethodCall methodCall) async {
-    if (methodCall.interface == 'org.freedesktop.DBus' && methodCall.name == 'NameHasOwner') {
-       String name = methodCall.values[0].asString();
-       if (name == '$namespace.StatusNotifierWatcher') {
-         return DBusMethodSuccessResponse([DBusBoolean(true)]);
-       }
-       return DBusMethodSuccessResponse([DBusBoolean(false)]);
+    if (methodCall.interface == 'org.freedesktop.DBus' &&
+        methodCall.name == 'NameHasOwner') {
+      String name = methodCall.values[0].asString();
+      if (name == '$namespace.StatusNotifierWatcher') {
+        return DBusMethodSuccessResponse([DBusBoolean(true)]);
+      }
+      return DBusMethodSuccessResponse([DBusBoolean(false)]);
     }
     return DBusMethodErrorResponse.unknownMethod();
   }

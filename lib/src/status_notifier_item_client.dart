@@ -675,7 +675,9 @@ class StatusNotifierItemClient {
 
   /// Returns whether a StatusNotifierHost is currently registered and running.
   Future<bool> get isHostRegistered async {
-    if (_watcherRemoteObject == null || _resolvedNamespace == null) return false;
+    if (_watcherRemoteObject == null || _resolvedNamespace == null) {
+      return false;
+    }
     var result = await _watcherRemoteObject!.getProperty(
       '$_resolvedNamespace.StatusNotifierWatcher',
       'IsStatusNotifierHostRegistered',
@@ -706,7 +708,10 @@ class StatusNotifierItemClient {
   List<String> _getNamespaces() {
     switch (_backend) {
       case StatusNotifierItemBackend.auto:
-        return ['org.kde', 'org.freedesktop']; // Exclude ayatana as a watcher backend standard
+        return [
+          'org.kde',
+          'org.freedesktop'
+        ]; // Exclude ayatana as a watcher backend standard
       case StatusNotifierItemBackend.spec:
         return ['org.freedesktop'];
       case StatusNotifierItemBackend.kde:
@@ -735,7 +740,26 @@ class StatusNotifierItemClient {
   // Connect to D-Bus and register this notifier item.
   Future<void> connect({
     bool requireWatcher = false,
+    bool enableGnomeExtensionCheck = true,
   }) async {
+    if (enableGnomeExtensionCheck) {
+      try {
+        final processResult =
+            await Process.run('gnome-extensions', ['list', '--enabled']);
+        if (!processResult.stdout
+                .toString()
+                .contains('appindicatorsupport@rgcjonas.gmail.com') &&
+            !processResult.stdout
+                .toString()
+                .contains('ubuntu-appindicators@ubuntu.com')) {
+          _logger.warning(
+              'AppIndicator/KStatusNotifierItem extension for GNOME Shell is not enabled.');
+        }
+      } catch (e) {
+        // Ignored
+      }
+    }
+
     var namespaces = _getNamespaces();
     String? targetNamespace;
 
@@ -802,8 +826,10 @@ class StatusNotifierItemClient {
       }
 
       // Attempt fallback if auto and the first attempt failed despite probe
-      if (_backend == StatusNotifierItemBackend.auto && targetNamespace == 'org.kde') {
-        _logger.fine('Registration failed for org.kde, attempting fallback to org.freedesktop');
+      if (_backend == StatusNotifierItemBackend.auto &&
+          targetNamespace == 'org.kde') {
+        _logger.fine(
+            'Registration failed for org.kde, attempting fallback to org.freedesktop');
         targetNamespace = 'org.freedesktop';
         _resolvedNamespace = targetNamespace;
 
@@ -838,12 +864,14 @@ class StatusNotifierItemClient {
             onHostRegisteredChanged?.call(true);
           });
 
-          _logger.info('Resolved StatusNotifier backend: $targetNamespace (fallback)');
+          _logger.info(
+              'Resolved StatusNotifier backend: $targetNamespace (fallback)');
         } catch (fallbackError) {
-          _logger.warning('Failed to register status notifier item with any watcher.');
+          _logger.warning(
+              'Failed to register status notifier item with any watcher.');
         }
       } else {
-         _logger.warning('Failed to register status notifier item: $e');
+        _logger.warning('Failed to register status notifier item: $e');
       }
     }
 
