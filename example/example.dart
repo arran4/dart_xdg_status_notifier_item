@@ -136,14 +136,28 @@ void main(List<String> args) async {
   final iconByName = args.contains('--icon-by-name');
   final enableGnomeExtensionCheck = !args.contains('--disable-gnome-check');
 
-  // Choose backend based on arguments
-  final backend = args.contains('--ayatana')
-      ? StatusNotifierItemBackend.ayatana
-      : args.contains('--kde')
-          ? StatusNotifierItemBackend.kde
-          : args.contains('--spec')
-              ? StatusNotifierItemBackend.spec
-              : StatusNotifierItemBackend.auto;
+  var backend = StatusNotifierItemBackend.spec;
+  for (final arg in args) {
+    if (arg.startsWith('--backend=')) {
+      final value = arg.substring('--backend='.length);
+      switch (value) {
+        case 'kde':
+          backend = StatusNotifierItemBackend.kde;
+          break;
+        case 'ayatana':
+          backend = StatusNotifierItemBackend.ayatana;
+          break;
+        case 'spec':
+          backend = StatusNotifierItemBackend.spec;
+          break;
+        case 'auto':
+          backend = StatusNotifierItemBackend.auto;
+          break;
+        default:
+          print('Unknown backend: $value');
+      }
+    }
+  }
 
   print('Using backend: $backend');
 
