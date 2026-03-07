@@ -136,7 +136,7 @@ void main(List<String> args) async {
   final iconByName = args.contains('--icon-by-name');
   final enableGnomeExtensionCheck = !args.contains('--disable-gnome-check');
 
-  var backend = StatusNotifierItemBackend.spec;
+  var backend = StatusNotifierItemBackend.auto;
   for (final arg in args) {
     if (arg.startsWith('--backend=')) {
       final value = arg.substring('--backend='.length);
