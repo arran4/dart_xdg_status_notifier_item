@@ -47,7 +47,7 @@ class DBusMenuItem {
 
   /// Creates a new separator menu item.
   DBusMenuItem.separator({bool visible = true})
-    : this(type: 'separator', visible: visible);
+      : this(type: 'separator', visible: visible);
 
   // Creates a new checkmark menu item. If [state] is true the item is checked.
   DBusMenuItem.checkmark(
@@ -57,13 +57,13 @@ class DBusMenuItem {
     bool state = false,
     Future<void> Function()? onClicked,
   }) : this(
-         visible: visible,
-         enabled: enabled,
-         label: label,
-         toggleType: 'checkmark',
-         toggleState: state ? 1 : 0,
-         onClicked: onClicked,
-       );
+          visible: visible,
+          enabled: enabled,
+          label: label,
+          toggleType: 'checkmark',
+          toggleState: state ? 1 : 0,
+          onClicked: onClicked,
+        );
 
   // Creates a new radio menu item. If [state] is true the item is active.
   DBusMenuItem.radio(
@@ -73,13 +73,13 @@ class DBusMenuItem {
     bool state = false,
     Future<void> Function()? onClicked,
   }) : this(
-         visible: visible,
-         enabled: enabled,
-         label: label,
-         toggleType: 'radio',
-         toggleState: state ? 1 : 0,
-         onClicked: onClicked,
-       );
+          visible: visible,
+          enabled: enabled,
+          label: label,
+          toggleType: 'radio',
+          toggleState: state ? 1 : 0,
+          onClicked: onClicked,
+        );
 }
 
 /// The status of a menu item.
@@ -537,7 +537,7 @@ class DBusMenuObject extends DBusObject {
     var events = methodCall.values[0].asArray();
     var idErrors = <int>[];
     for (var event in events) {
-      var values = event.asArray();
+      var values = (event as DBusStruct).children.toList();
       var id = values[0].asInt32();
       var eventId = values[1].asString();
       var data = values[2].asVariant();
@@ -663,9 +663,8 @@ class DBusMenuObject extends DBusObject {
   DBusValue _makeMenuItem(DBusMenuItem item, int recursionDepth) {
     List<DBusValue> children = [];
     if (recursionDepth != 0) {
-      var nextRecursionDepth = recursionDepth < 0
-          ? recursionDepth
-          : recursionDepth - 1;
+      var nextRecursionDepth =
+          recursionDepth < 0 ? recursionDepth : recursionDepth - 1;
       for (var child in item.children) {
         children.add(_makeMenuItem(child, nextRecursionDepth));
       }
