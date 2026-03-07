@@ -92,6 +92,7 @@ void main() {
     expect(idErrors, isEmpty);
   });
 
+
   test(
     'DBusMenuObject.update throws ArgumentError if children count changes',
     () async {
@@ -109,16 +110,14 @@ void main() {
         ],
       );
 
-      expect(
-        () => menuObject.update(updatedMenu),
-        throwsA(
-          isA<ArgumentError>().having(
-            (e) => e.message,
-            'message',
-            'Updated menu must have the same number of items as the previous menu.',
-          ),
-        ),
-      );
-    },
-  );
+    expect(
+      () => menuObject.update(updatedMenu),
+      throwsA(isA<ArgumentError>().having(
+        (e) => e.message,
+        'message',
+        'Updated menu must have the same number of items as the previous menu.',
+      )),
+    );
+  });
+
 }
