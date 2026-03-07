@@ -92,7 +92,7 @@ void main() {
     final idErrors = successResponse.values[0].asInt32Array().toList();
     expect(idErrors, isEmpty);
   });
-}
+
 
    test('DBusMenuObject.update throws ArgumentError if children count changes', () async {
     final rootMenu = DBusMenuItem(
@@ -118,4 +118,5 @@ void main() {
       )),
     );
   });
+
 }
