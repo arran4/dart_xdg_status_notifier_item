@@ -185,7 +185,11 @@ class DBusMenuObject extends DBusObject {
       );
     }
 
-    assert(originalItem.children.length == newItem.children.length);
+    if (originalItem.children.length != newItem.children.length) {
+      throw ArgumentError(
+        'Updated menu must have the same number of items as the previous menu.',
+      );
+    }
     for (var i = 0; i < originalItem.children.length; i++) {
       _makeMenuItemPropertiesUpdated(
         originalItem.children[i],
