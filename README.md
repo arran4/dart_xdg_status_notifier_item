@@ -65,7 +65,7 @@ You can specify the backend at initialization:
 ```dart
   client = StatusNotifierItemClient(
       id: 'test-client',
-      backend: StatusNotifierItemBackend.ayatana,
+      backend: StatusNotifierItemBackend.auto,
       iconName: 'computer-fail-symbolic',
       menu: DBusMenuItem(children: [
         DBusMenuItem(label: 'Hello'),
