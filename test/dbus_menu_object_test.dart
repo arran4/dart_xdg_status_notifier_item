@@ -56,7 +56,8 @@ void main() {
     expect(response, isA<DBusMethodSuccessResponse>());
   });
 
-  test('DBusMenuObject.update throws ArgumentError if children count changes', () async {
+
+   test('DBusMenuObject EventGroup parses struct correctly', () async {
     final rootMenu = DBusMenuItem(
       children: [
         DBusMenuItem(label: 'Item 1'), // Item 1
@@ -65,6 +66,42 @@ void main() {
 
     final menuObject = DBusMenuObject(DBusObjectPath('/MenuBar'), rootMenu);
 
+     // Call EventGroup with an in-bounds id (id = 1).
+    final methodCall = DBusMethodCall(
+      sender: 'org.freedesktop.DBus',
+      interface: 'com.canonical.dbusmenu',
+      name: 'EventGroup',
+      values: [
+        DBusArray(DBusSignature('(isvu)'), [
+          DBusStruct([
+            DBusInt32(1), // id
+            DBusString('clicked'), // eventId
+            DBusVariant(DBusString('')), // data
+            DBusUint32(0), // timestamp
+          ])
+        ])
+      ],
+    );
+
+    final response = await menuObject.handleMethodCall(methodCall);
+
+    expect(response, isA<DBusMethodSuccessResponse>());
+    final successResponse = response as DBusMethodSuccessResponse;
+    expect(successResponse.values.length, 1);
+    expect(successResponse.values[0].signature.value, 'ai');
+    final idErrors = successResponse.values[0].asInt32Array().toList();
+    expect(idErrors, isEmpty);
+  });
+}
+
+   test('DBusMenuObject.update throws ArgumentError if children count changes', () async {
+    final rootMenu = DBusMenuItem(
+      children: [
+        DBusMenuItem(label: 'Item 1'), // Item 1
+      ],
+    );
+
+    final menuObject = DBusMenuObject(DBusObjectPath('/MenuBar'), rootMenu);
     final updatedMenu = DBusMenuItem(
       children: [
         DBusMenuItem(label: 'Item 1 updated'),
