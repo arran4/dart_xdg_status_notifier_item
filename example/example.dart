@@ -164,7 +164,8 @@ void main(List<String> args) async {
   final iconPixmap = loadIconPixmap('example/icon.png');
   if (iconPixmap != null) {
     print(
-        'Loaded icon from example/icon.png (${iconPixmap.width}x${iconPixmap.height})');
+      'Loaded icon from example/icon.png (${iconPixmap.width}x${iconPixmap.height})',
+    );
   } else {
     print('Proceeding without PNG icon pixmap.');
   }

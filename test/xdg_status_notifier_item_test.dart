@@ -9,7 +9,7 @@ class MockNotifierWatcherObject extends DBusObject {
   final String namespace;
 
   MockNotifierWatcherObject(this.namespace)
-      : super(DBusObjectPath('/StatusNotifierWatcher'));
+    : super(DBusObjectPath('/StatusNotifierWatcher'));
 
   @override
   Future<DBusMethodResponse> handleMethodCall(DBusMethodCall methodCall) async {
@@ -30,7 +30,7 @@ class MockNotifierWatcherObject extends DBusObject {
 class MockDBusObject extends DBusObject {
   final String namespace;
   MockDBusObject(this.namespace)
-      : super(DBusObjectPath('/org/freedesktop/DBus'));
+    : super(DBusObjectPath('/org/freedesktop/DBus'));
 
   @override
   Future<DBusMethodResponse> handleMethodCall(DBusMethodCall methodCall) async {
@@ -52,7 +52,7 @@ class MockNotifierWatcherServer extends DBusClient {
   final String namespace;
 
   MockNotifierWatcherServer(DBusAddress clientAddress, this.namespace)
-      : super(clientAddress) {
+    : super(clientAddress) {
     _root = MockNotifierWatcherObject(namespace);
     _dbusRoot = MockDBusObject(namespace);
   }
@@ -271,8 +271,7 @@ void main() {
       );
       expect(response, isA<DBusMethodSuccessResponse>());
       expect(
-        (response as DBusMethodSuccessResponse)
-            .returnValues[0]
+        (response as DBusMethodSuccessResponse).returnValues[0]
             .asVariant()
             .asString(),
         'normal',
@@ -284,8 +283,7 @@ void main() {
       response = await object.getProperty('com.canonical.dbusmenu', 'Status');
       expect(response, isA<DBusMethodSuccessResponse>());
       expect(
-        (response as DBusMethodSuccessResponse)
-            .returnValues[0]
+        (response as DBusMethodSuccessResponse).returnValues[0]
             .asVariant()
             .asString(),
         'notice',
@@ -294,10 +292,7 @@ void main() {
   );
 
   test('Icon name and markup sanitization', () async {
-    var client = StatusNotifierItemClient(
-      id: 'test',
-      menu: DBusMenuItem(),
-    );
+    var client = StatusNotifierItemClient(id: 'test', menu: DBusMenuItem());
 
     // Test icon name sanitization
     client.iconName = 'test-icon-name\n\r';
@@ -317,8 +312,10 @@ void main() {
 
     // Escaping test
     var original = '<b>Bold</b> & "Quotes"';
-    expect(escapeMarkup(original),
-        '&lt;b&gt;Bold&lt;/b&gt; &amp; &quot;Quotes&quot;');
+    expect(
+      escapeMarkup(original),
+      '&lt;b&gt;Bold&lt;/b&gt; &amp; &quot;Quotes&quot;',
+    );
 
     // Strip test
     expect(stripMarkup(original), 'Bold & "Quotes"');
