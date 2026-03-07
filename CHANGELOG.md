@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0
+
+* Bump to next minor version
+
 ## 0.0.3
 
 * Version bump to prepare for upcoming release
