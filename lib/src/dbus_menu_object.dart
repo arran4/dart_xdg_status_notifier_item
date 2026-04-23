@@ -127,7 +127,19 @@ class DBusMenuObject extends DBusObject {
     }
   }
 
-  /// Export an updated [menu]. This must have the same number and layout of items as the previous menu.
+  void _replaceMenuTree(DBusMenuItem menu) {
+    _items.clear();
+    _idsByItem.clear();
+    this.menu = menu;
+    _registerIds(menu);
+  }
+
+  /// Export property/state changes for [menu].
+  ///
+  /// This method is intentionally strict: [menu] must have the same tree shape
+  /// (same number of children at every node) as the currently exported menu.
+  /// Use [replace] when installing a new menu tree (for example empty-to-
+  /// populated) or when submenu structure changes.
   Future<void> update(DBusMenuItem menu) async {
     // Calculate what has changed.
     var updatedProperties = <DBusValue>[];
@@ -139,18 +151,27 @@ class DBusMenuObject extends DBusObject {
       removedProperties,
     );
 
-    // Replace old menu.
-    _items.clear();
-    _idsByItem.clear();
-    this.menu = menu;
-    _registerIds(menu);
+    _replaceMenuTree(menu);
 
     await emitSignal('com.canonical.dbusmenu', 'ItemsPropertiesUpdated', [
       DBusArray(DBusSignature('(ia{sv})'), updatedProperties),
       DBusArray(DBusSignature('(ias)'), removedProperties),
     ]);
 
-    // Emit LayoutUpdated since the underlying tree structure might have fundamentally changed.
+    await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
+      DBusUint32(1), // revision
+      DBusInt32(0), // parent id (root)
+    ]);
+  }
+
+  /// Replaces the currently exported menu tree with [menu].
+  ///
+  /// Unlike [update], this allows structural changes (including empty-to-
+  /// populated menus) and should be used when adding/removing/reparenting menu
+  /// items.
+  Future<void> replace(DBusMenuItem menu) async {
+    _replaceMenuTree(menu);
+
     await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
       DBusUint32(1), // revision
       DBusInt32(0), // parent id (root)
@@ -187,7 +208,11 @@ class DBusMenuObject extends DBusObject {
 
     if (originalItem.children.length != newItem.children.length) {
       throw ArgumentError(
-        'Updated menu must have the same number of items as the previous menu.',
+        'DBusMenuObject.update() only supports property/state changes on the '
+        'existing menu layout. Found a structural change at item id $id '
+        '(old children: ${originalItem.children.length}, new children: '
+        '${newItem.children.length}). Use DBusMenuObject.replace() for '
+        'empty-to-populated or layout-changing updates.',
       );
     }
     for (var i = 0; i < originalItem.children.length; i++) {

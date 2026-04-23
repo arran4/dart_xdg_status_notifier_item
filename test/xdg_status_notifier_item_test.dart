@@ -321,6 +321,29 @@ void main() {
     },
   );
 
+  test('replaceMenu supports empty-to-populated menu installs', () async {
+    var client = StatusNotifierItemClient(id: 'test', menu: DBusMenuItem());
+
+    await client.replaceMenu(
+      DBusMenuItem(children: [DBusMenuItem(label: 'Installed later')]),
+    );
+
+    var layoutResponse = await client.menuObjectForTest.handleMethodCall(
+      DBusMethodCall(
+        sender: 'org.freedesktop.DBus',
+        interface: 'com.canonical.dbusmenu',
+        name: 'GetLayout',
+        values: [DBusInt32(0), DBusInt32(-1), DBusArray.string([])],
+      ),
+    );
+
+    expect(layoutResponse, isA<DBusMethodSuccessResponse>());
+    var layout =
+        (layoutResponse as DBusMethodSuccessResponse).values[1] as DBusStruct;
+    var children = layout.children[2].asArray();
+    expect(children.length, 1);
+  });
+
   test('Icon name and markup sanitization', () async {
     var client = StatusNotifierItemClient(id: 'test', menu: DBusMenuItem());
 

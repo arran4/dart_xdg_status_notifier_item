@@ -115,10 +115,77 @@ void main() {
           isA<ArgumentError>().having(
             (e) => e.message,
             'message',
-            'Updated menu must have the same number of items as the previous menu.',
+            contains('Use DBusMenuObject.replace()'),
           ),
         ),
       );
     },
   );
+
+  test(
+    'DBusMenuObject.update throws on empty-to-populated menu and points to replace',
+    () async {
+      final menuObject = DBusMenuObject(
+        DBusObjectPath('/MenuBar'),
+        DBusMenuItem(),
+      );
+
+      final populatedMenu = DBusMenuItem(
+        children: [DBusMenuItem(label: 'Installed later')],
+      );
+
+      expect(
+        () => menuObject.update(populatedMenu),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('DBusMenuObject.replace()'),
+          ),
+        ),
+      );
+    },
+  );
+
+  test('DBusMenuObject.replace allows structural menu changes', () async {
+    final menuObject = DBusMenuObject(
+      DBusObjectPath('/MenuBar'),
+      DBusMenuItem(),
+    );
+
+    final replacedMenu = DBusMenuItem(
+      children: [
+        DBusMenuItem(
+          label: 'Root item',
+          children: [DBusMenuItem(label: 'Nested')],
+        ),
+      ],
+    );
+
+    await menuObject.replace(replacedMenu);
+
+    final methodCall = DBusMethodCall(
+      sender: 'org.freedesktop.DBus',
+      interface: 'com.canonical.dbusmenu',
+      name: 'GetLayout',
+      values: [
+        DBusInt32(0),
+        DBusInt32(-1),
+        DBusArray.string([]),
+      ],
+    );
+
+    final response = await menuObject.handleMethodCall(methodCall);
+    expect(response, isA<DBusMethodSuccessResponse>());
+
+    final successResponse = response as DBusMethodSuccessResponse;
+    final rootLayout = successResponse.values[1] as DBusStruct;
+    final rootChildren = rootLayout.children[2].asArray();
+    expect(rootChildren.length, 1);
+
+    final firstChild = rootChildren.first as DBusStruct;
+    final firstChildProperties = firstChild.children[1].asStringVariantDict();
+    expect(firstChildProperties['label']?.asString(), 'Root item');
+  });
+
 }

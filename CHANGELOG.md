@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+* Clarified DBus menu update semantics: `DBusMenuObject.update()` and `StatusNotifierItemClient.updateMenu()` now explicitly document that they only support property/state updates on an unchanged menu layout.
+* Added `DBusMenuObject.replace()` and `StatusNotifierItemClient.replaceMenu()` for structural menu changes (including empty-to-populated menu installation).
+* Improved update invariant error messaging with actionable guidance to use `replace` for layout changes.
+* Added tests covering strict `update()` invariants and structural replacement behavior.
+
 ## 1.1.0
 
 * **Enhanced Developer Experience:** Updated `README.md` with more comprehensive examples to help new developers integrate the package more easily.
