@@ -183,7 +183,7 @@ void main() {
     final rootChildren = rootLayout.children[2].asArray();
     expect(rootChildren.length, 1);
 
-    final firstChild = rootChildren.first as DBusStruct;
+    final firstChild = rootChildren.first.asVariant().value as DBusStruct;
     final firstChildProperties = firstChild.children[1].asStringVariantDict();
     expect(firstChildProperties['label']?.asString(), 'Root item');
   });
