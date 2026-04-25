@@ -183,9 +183,23 @@ void main() {
   test(
     'updateOrReplaceMenu falls back to replace for structural changes',
     () async {
+      final server = DBusServer();
+      final clientAddress = await server.listenAddress(
+        DBusAddress.unix(dir: Directory.systemTemp),
+      );
+      addTearDown(() async {
+        await server.close();
+      });
+
+      final bus = DBusClient(clientAddress);
+      addTearDown(() async {
+        await bus.close();
+      });
+
       final client = StatusNotifierItemClient(
         id: 'test',
         menu: DBusMenuItem(),
+        bus: bus,
       );
 
       await client.updateOrReplaceMenu(
