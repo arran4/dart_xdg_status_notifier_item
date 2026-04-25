@@ -157,11 +157,6 @@ class DBusMenuObject extends DBusObject {
       DBusArray(DBusSignature('(ia{sv})'), updatedProperties),
       DBusArray(DBusSignature('(ias)'), removedProperties),
     ]);
-
-    await emitSignal('com.canonical.dbusmenu', 'LayoutUpdated', [
-      DBusUint32(1), // revision
-      DBusInt32(0), // parent id (root)
-    ]);
   }
 
   /// Replaces the currently exported menu tree with [menu].

@@ -6,6 +6,7 @@
 * Added `DBusMenuObject.replace()` and `StatusNotifierItemClient.replaceMenu()` for structural menu changes (including empty-to-populated menu installation).
 * Improved update invariant error messaging with actionable guidance to use `replace` for layout changes.
 * Added tests covering strict `update()` invariants and structural replacement behavior.
+* `DBusMenuObject.update()` no longer emits `LayoutUpdated`; property-only updates now rely on `ItemsPropertiesUpdated` to avoid unnecessary host `GetLayout` round-trips.
 
 ## 1.1.0
 
