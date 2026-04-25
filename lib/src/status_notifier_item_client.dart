@@ -911,9 +911,20 @@ class StatusNotifierItemClient {
     }
   }
 
-  /// Updates the menu shown.
+  /// Updates menu item properties while preserving menu layout.
+  ///
+  /// Use [replaceMenu] if child structure changes (for example, adding or
+  /// removing items, or replacing an initially empty menu).
   Future<void> updateMenu(DBusMenuItem menu) async {
     await _menuObject.update(menu);
+  }
+
+  /// Replaces the exported menu tree.
+  ///
+  /// This is the safe path for structural changes, including initial
+  /// empty-to-populated menu installs.
+  Future<void> replaceMenu(DBusMenuItem menu) async {
+    await _menuObject.replace(menu);
   }
 
   /// Gets the current menu status.

@@ -95,10 +95,16 @@ DBusMenuItem buildMenu() {
 }
 ```
 
-If your application state changes (like toggling a checkmark), you can dynamically update the entire menu structure:
+If your application state changes but the menu layout stays the same (same child tree shape), use:
 
 ```dart
 await client.updateMenu(buildMenu());
+```
+
+If the layout changes (for example, initial empty menu -> populated menu, adding/removing/reparenting items), use:
+
+```dart
+await client.replaceMenu(buildMenu());
 ```
 
 ## Events & Interactivity
