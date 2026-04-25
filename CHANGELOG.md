@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+* Added `StatusNotifierItemClient.updateOrReplaceMenu()` to support one-call menu updates that fall back from `updateMenu()` to `replaceMenu()` when the menu structure changes.
+
 ## 1.2.0
 
 * Clarified DBus menu update semantics: `DBusMenuObject.update()` and `StatusNotifierItemClient.updateMenu()` now explicitly document that they only support property/state updates on an unchanged menu layout.
