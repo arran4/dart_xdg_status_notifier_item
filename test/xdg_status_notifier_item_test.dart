@@ -180,6 +180,48 @@ void main() {
     expect(client.title, 'new test');
   });
 
+  test(
+    'updateOrReplaceMenu falls back to replace for structural changes',
+    () async {
+      final client = StatusNotifierItemClient(
+        id: 'test',
+        menu: DBusMenuItem(),
+      );
+
+      await client.updateOrReplaceMenu(
+        DBusMenuItem(
+          children: [
+            DBusMenuItem(
+              label: 'Installed later',
+              children: [DBusMenuItem(label: 'Nested child')],
+            ),
+          ],
+        ),
+      );
+
+      final methodCall = DBusMethodCall(
+        sender: 'org.freedesktop.DBus',
+        interface: 'com.canonical.dbusmenu',
+        name: 'GetLayout',
+        values: [
+          DBusInt32(0),
+          DBusInt32(-1),
+          DBusArray.string([]),
+        ],
+      );
+
+      final response = await client.menuObjectForTest.handleMethodCall(
+        methodCall,
+      );
+      expect(response, isA<DBusMethodSuccessResponse>());
+
+      final successResponse = response as DBusMethodSuccessResponse;
+      final rootLayout = successResponse.values[1] as DBusStruct;
+      final rootChildren = rootLayout.children[2].asArray();
+      expect(rootChildren.length, 1);
+    },
+  );
+
   group('StatusNotifierItemClient actions', () {
     test('ContextMenu correctly parses coordinates', () async {
       int? resultX;

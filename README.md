@@ -107,6 +107,13 @@ If the layout changes (for example, initial empty menu -> populated menu, adding
 await client.replaceMenu(buildMenu());
 ```
 
+If you rebuild your menu model frequently and do not want to branch on shape
+compatibility yourself, use:
+
+```dart
+await client.updateOrReplaceMenu(buildMenu());
+```
+
 ## Events & Interactivity
 
 The `StatusNotifierItemClient` exposes several event callbacks that you can provide when constructing it:

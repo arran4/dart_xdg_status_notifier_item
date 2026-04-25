@@ -927,6 +927,20 @@ class StatusNotifierItemClient {
     await _menuObject.replace(menu);
   }
 
+  /// Updates menu properties when possible and falls back to replacement when
+  /// the menu layout changes.
+  ///
+  /// This can be used by applications that rebuild their full menu model on
+  /// each state change and don't want to pre-compute whether the tree shape is
+  /// unchanged.
+  Future<void> updateOrReplaceMenu(DBusMenuItem menu) async {
+    try {
+      await _menuObject.update(menu);
+    } on ArgumentError {
+      await _menuObject.replace(menu);
+    }
+  }
+
   /// Gets the current menu status.
   String get menuStatus => _menuObject.status;
 
