@@ -187,5 +187,4 @@ void main() {
     final firstChildProperties = firstChild.children[1].asStringVariantDict();
     expect(firstChildProperties['label']?.asString(), 'Root item');
   });
-
 }
