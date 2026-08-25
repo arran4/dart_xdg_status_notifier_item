@@ -13,7 +13,7 @@ dart pub add xdg_status_notifier_item
 flutter pub add xdg_status_notifier_item
 ```
 
-or 
+Or
 
 ### pubspec.yam
 ```pubspec.yaml
